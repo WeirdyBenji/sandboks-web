@@ -1,7 +1,9 @@
 :root {
+    /* Dark Theme (Default) */
     --bg-color: #0f172a;
     --text-color: #f8fafc;
     --text-secondary: #94a3b8;
+	--card-action: rgba(0, 0, 0, 0.3);
     --card-bg: rgba(30, 41, 59, 0.7);
     --card-border: rgba(255, 255, 255, 0.1);
     --primary-color: #a855f7;
@@ -13,6 +15,21 @@
     --gradient-bg: linear-gradient(135deg, #2e1065 0%, #0f172a 100%);
     /* Deep Purple to Slate */
     --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+/* Light Theme Variables */
+[data-theme="light"] {
+    --bg-color: #f8fafc;
+    --text-color: #1e293b;
+    --text-secondary: #64748b;
+	--card-action: rgba(200, 200, 200, 0.3);
+    --card-bg: rgba(255, 255, 255, 0.7);
+    --card-border: rgba(0, 0, 0, 0.1);
+    --primary-color: #9333ea;
+    --primary-hover: #7e22ce;
+    --accent-color: #c026d3;
+    --gradient-bg: linear-gradient(135deg, #f3e8ff 0%, #e2e8f0 100%);
+    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
 }
 
 * {
@@ -31,7 +48,32 @@ body {
     align-items: center;
     overflow-x: hidden;
     position: relative;
-    transition: background 0.5s ease;
+    transition: background 0.5s ease, color 0.3s ease;
+}
+
+/* Theme Toggle Button */
+.theme-toggle {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    color: var(--text-color);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+}
+
+.theme-toggle:hover {
+    transform: scale(1.1);
+    border-color: var(--primary-color);
 }
 
 /* Dynamic Background Animation */
@@ -119,18 +161,14 @@ body {
     align-items: center;
     justify-content: center;
     gap: 0.75rem;
-    /* Reduced gap */
     padding: 1rem;
-    /* Reduced padding for compact look */
     background: var(--card-bg);
     border: 1px solid var(--card-border);
     border-radius: 12px;
-    /* Slightly smaller radius */
     color: var(--text-color);
     text-decoration: none;
     font-weight: 600;
     font-size: 1rem;
-    /* Slightly smaller font */
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
@@ -152,7 +190,6 @@ body {
 
 .link-card:hover {
     transform: translateY(-2px);
-    /* Subtle lift */
     background: rgba(255, 255, 255, 0.1);
     box-shadow: 0 10px 20px -10px rgba(0, 0, 0, 0.5);
     border-color: rgba(255, 255, 255, 0.3);
@@ -163,8 +200,8 @@ body {
 }
 
 .link-card i {
-    font-size: 1.25rem;
-    /* Smaller icons */
+    font-size: 1.5rem;
+    /* Larger icons for icon-only view */
 }
 
 /* Social Links Specifics */
@@ -184,7 +221,21 @@ body {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
-    /* Tighter spacing */
+}
+
+/* Horizontal Social Links */
+.links-section.horizontal-links {
+    flex-direction: row;
+    justify-content: center;
+    gap: 1rem;
+}
+
+.horizontal-links .link-card {
+    width: 60px;
+    height: 60px;
+    padding: 0;
+    border-radius: 50%;
+    /* Circle buttons */
 }
 
 .divider {
@@ -232,12 +283,18 @@ body {
 .promo-header {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.75rem;
     margin-bottom: 0.25rem;
 }
 
-.promo-header i {
-    color: var(--primary-color);
+.partner-logo {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    border-radius: 6px;
+    background: #fff;
+    /* Ensure logo is visible on dark bg */
+    padding: 2px;
 }
 
 .promo-header h3 {
@@ -254,7 +311,7 @@ body {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    background: rgba(0, 0, 0, 0.3);
+    background: var(--card-action);
     padding: 0.5rem;
     border-radius: 8px;
     border: 1px solid var(--card-border);
@@ -398,4 +455,13 @@ body.party-mode .profile-image-container {
         justify-content: space-between;
         margin-top: 0.5rem;
     }
+	
+	.partner-logo {
+		display: none;
+	}
+}
+
+.links {
+    text-decoration: none;
+	color: inherit;
 }

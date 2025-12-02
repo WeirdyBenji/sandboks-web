@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Benji | Mes Liens & Codes Promo</title>
-    <meta name="description" content="Retrouvez tous mes réseaux sociaux et mes codes promo exclusifs (Revolut, Eve and Co, Jow...).">
+    <title>Raccoon | Mes Liens & Codes Promo</title>
+    <meta name="description"
+        content="Retrouvez tous mes réseaux sociaux et mes codes promo exclusifs (Revolut, Eve and Co, Jow...).">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
@@ -12,91 +14,171 @@
     <!-- FontAwesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
+
 <body>
 
     <div class="background-animation"></div>
+
+    <!-- Theme Switcher -->
+    <button id="theme-toggle" class="theme-toggle" aria-label="Changer le thème">
+        <i class="fa-solid fa-moon"></i>
+    </button>
 
     <main class="container">
         <!-- Profile Section -->
         <header class="profile-section">
             <div class="profile-image-container">
                 <!-- Placeholder for user image, using a nice gradient or generic avatar if none provided -->
-                <img src="https://ui-avatars.com/api/?name=Benji&background=random&size=256" alt="Benji" class="profile-image">
+                <img src="https://ui-avatars.com/api/?name=B&background=random&size=256" alt="Benji"
+                    class="profile-image">
             </div>
-            <h1 class="profile-name">Benji</h1>
-            <p class="profile-bio">Créateur de contenu & Bons plans 🚀<br>Retrouvez mes codes promo ci-dessous !</p>
+            <h1 class="profile-name">Raccoon</h1>
+            <p class="profile-bio">Retrouvez mes codes promo ci-dessous !</p>
         </header>
 
-        <!-- Social Links -->
-        <section class="links-section">
-            <a href="#" class="link-card social-link" target="_blank">
+        <!-- Social Links (Horizontal) 
+        <section class="links-section horizontal-links">
+            <a href="#" class="link-card social-link" target="_blank" aria-label="Instagram">
                 <i class="fa-brands fa-instagram"></i>
-                <span>Instagram</span>
             </a>
-            <a href="#" class="link-card social-link" target="_blank">
+            <a href="#" class="link-card social-link" target="_blank" aria-label="TikTok">
                 <i class="fa-brands fa-tiktok"></i>
-                <span>TikTok</span>
             </a>
-            <a href="#" class="link-card social-link" target="_blank">
+            <a href="#" class="link-card social-link" target="_blank" aria-label="YouTube">
                 <i class="fa-brands fa-youtube"></i>
-                <span>YouTube</span>
+            </a>
+			<a href="#" class="link-card social-link" target="_blank" aria-label="Discord">
+                <i class="fa-brands fa-discord"></i>
             </a>
         </section>
 
-        <div class="divider"></div>
+        <div class="divider"></div>-->
 
         <!-- Promo Codes Section -->
         <section class="promos-section">
             <h2 class="section-title">💸 Mes Codes Promo</h2>
 
+			<a href="https://revolut.ngih.net/c/5435136/3135669/9626?subId1=KONECT" target="_blank" id="revolut" class="links">
             <div class="promo-card">
+				<img src="https://ui-avatars.com/api/?name=Rev&background=fff&color=000&size=64"
+                    alt="Revolut Logo" class="partner-logo">
                 <div class="promo-info">
                     <div class="promo-header">
-                        <i class="fa-solid fa-credit-card"></i>
                         <h3>Revolut</h3>
+						<p class="promo-desc">Banque CB virtuelles</p>
                     </div>
-                    <p class="promo-desc">Obtenez une prime à l'inscription</p>
+                    <p class="promo-desc">+20€ après la première dépense</p>
                 </div>
                 <div class="promo-action">
-                    <code class="promo-code">BENJIREV</code>
-                    <button class="copy-btn" data-code="BENJIREV" aria-label="Copier le code Revolut">
+                    <code class="promo-code">Click on copy</code>
+                    <button class="copy-btn" data-code="https://revolut.ngih.net/c/5435136/3135669/9626?subId1=KONECT" aria-label="Copier le code Revolut">
                         <i class="fa-regular fa-copy"></i>
                     </button>
                 </div>
             </div>
+			</a>
 
+			<a href="https://eve-and-co.com" target="_blank" id="eve" class="links">
             <div class="promo-card">
+				<img src="https://ui-avatars.com/api/?name=Eve&background=fff&color=000&size=64"
+                    alt="Eve and Co Logo" class="partner-logo">
                 <div class="promo-info">
                     <div class="promo-header">
-                        <i class="fa-solid fa-mattress-pillow"></i>
                         <h3>Eve and Co</h3>
+						<p class="promo-desc">Culottes menstruelles</p>
+                    </div>
+                    <p class="promo-desc">-15% sur tout le site (-10% pendant le Black Friday)</p>
+                </div>
+                <div class="promo-action">
+                    <code class="promo-code">KONECT</code>
+                    <button class="copy-btn" data-code="KONECT" aria-label="Copier le code Eve and Co">
+                        <i class="fa-regular fa-copy"></i>
+                    </button>
+                </div>
+            </div>
+			</a>
+
+			<a href="https://jow.fr/" target="_blank" id="jow" class="links">
+            <div class="promo-card">
+				<img src="https://ui-avatars.com/api/?name=Jow&background=fff&color=000&size=64"
+                    alt="Jow Logo" class="partner-logo">
+                <div class="promo-info">
+                    <div class="promo-header">
+                        <h3>Jow</h3>
+						<p class="promo-desc">Recettes -> drive</p>
+                    </div>
+                    <p class="promo-desc">-10€ sur les 3 permières commandes de plus de 40€</p>
+                </div>
+                <div class="promo-action">
+                    <code class="promo-code">KONECT15</code>
+                    <button class="copy-btn" data-code="KONECT15" aria-label="Copier le code Jow">
+                        <i class="fa-regular fa-copy"></i>
+                    </button>
+                </div>
+            </div>
+			</a>
+			
+			<a href="https://gleamnails.fr/" target="_blank" id="gleam" class="links">
+			<div class="promo-card">
+				<img src="https://ui-avatars.com/api/?name=Gleam&background=fff&color=000&size=64"
+                    alt="Gleam Logo" class="partner-logo">
+                <div class="promo-info">
+                    <div class="promo-header">
+                        <h3>Gleam nails</h3>
+						<p class="promo-desc">Press on nails</p>
+                    </div>
+                    <p class="promo-desc"></p>
+                </div>
+                <div class="promo-action">
+                    <code class="promo-code">Click on copy</code>
+                    <button class="copy-btn" data-code="https://gleamnails.fr" aria-label="Copier le code Gleam nails">
+                        <i class="fa-regular fa-copy"></i>
+                    </button>
+                </div>
+            </div>
+			</a>
+			
+			<a href="https://fr.weareholy.com/" target="_blank" id="holy" class="links">
+			<div class="promo-card">
+				<img src="https://ui-avatars.com/api/?name=Holy&background=fff&color=000&size=64"
+                    alt="Holy Logo" class="partner-logo">
+                <div class="promo-info">
+                    <div class="promo-header">
+                        <h3>Holy</h3>
+						<p class="promo-desc">Poudre de boissons alternatives aux sodas</p>
                     </div>
                     <p class="promo-desc">-15% sur tout le site</p>
                 </div>
                 <div class="promo-action">
-                    <code class="promo-code">BENJIEVE15</code>
-                    <button class="copy-btn" data-code="BENJIEVE15" aria-label="Copier le code Eve and Co">
+                    <code class="promo-code">KONECT</code>
+                    <button class="copy-btn" data-code="KONECT" aria-label="Copier le code Holy">
                         <i class="fa-regular fa-copy"></i>
                     </button>
                 </div>
             </div>
-
-            <div class="promo-card">
+			</a>
+		
+			<a href="https://fr.weareholy.com/" target="_blank" id="holy5" class="links">
+		    <div class="promo-card">
+				<img src="https://ui-avatars.com/api/?name=Holy&background=fff&color=000&size=64"
+					alt="Holy Logo" class="partner-logo">
                 <div class="promo-info">
                     <div class="promo-header">
-                        <i class="fa-solid fa-utensils"></i>
-                        <h3>Jow</h3>
+                        <h3>Holy</h3>
+						<p class="promo-desc">Poudre de boissons alternatives aux sodas</p>
                     </div>
-                    <p class="promo-desc">10€ offerts sur votre 1ère commande</p>
+                    <p class="promo-desc">-5€ sur la première commande</p>
                 </div>
                 <div class="promo-action">
-                    <code class="promo-code">BENJIJOW</code>
-                    <button class="copy-btn" data-code="BENJIJOW" aria-label="Copier le code Jow">
+                    <code class="promo-code">KONECT5</code>
+                    <button class="copy-btn" data-code="KONECT5" aria-label="Copier le code Holy">
                         <i class="fa-regular fa-copy"></i>
                     </button>
                 </div>
             </div>
-             <div class="promo-card">
+			</a>
+
+            <div class="promo-card">
                 <div class="promo-info">
                     <div class="promo-header">
                         <i class="fa-solid fa-bolt"></i>
@@ -105,16 +187,17 @@
                     <p class="promo-desc">Découvrir plus de bons plans</p>
                 </div>
                 <div class="promo-action">
-                   <a href="#" class="visit-btn">Voir <i class="fa-solid fa-arrow-right"></i></a>
+                    <a href="#" class="visit-btn">Flemme <i class="fa-solid fa-arrow-right"></i></a>
                 </div>
             </div>
         </section>
     </main>
 
     <footer class="footer">
-        <p>© 2025 Benji. All rights reserved.</p>
+        <p>© 2025 Coonzer. All rights unreserved.</p>
     </footer>
 
     <script src="script.js"></script>
 </body>
+
 </html>

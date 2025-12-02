@@ -21,7 +21,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             } catch (err) {
                 console.error('Failed to copy:', err);
-                // Fallback or error handling could go here
             }
         });
     });
@@ -58,6 +57,40 @@ document.addEventListener('DOMContentLoaded', () => {
             if (clickCount >= 5) {
                 document.body.classList.toggle('party-mode');
                 clickCount = 0; // Reset after triggering
+            }
+        });
+    }
+
+    // Theme Switcher Logic
+    const themeToggleBtn = document.getElementById('theme-toggle');
+    const themeIcon = themeToggleBtn.querySelector('i');
+
+    // Check local storage or system preference
+    const savedTheme = localStorage.getItem('theme');
+    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+    if (savedTheme === 'light') {
+        document.body.setAttribute('data-theme', 'light');
+        themeIcon.classList.replace('fa-moon', 'fa-sun');
+    } else if (savedTheme === 'dark') {
+        document.body.removeAttribute('data-theme'); // Default is dark
+        themeIcon.classList.replace('fa-sun', 'fa-moon');
+    } else {
+        // System preference logic could go here if needed
+    }
+
+    if (themeToggleBtn) {
+        themeToggleBtn.addEventListener('click', () => {
+            const currentTheme = document.body.getAttribute('data-theme');
+
+            if (currentTheme === 'light') {
+                document.body.removeAttribute('data-theme');
+                localStorage.setItem('theme', 'dark');
+                themeIcon.classList.replace('fa-sun', 'fa-moon');
+            } else {
+                document.body.setAttribute('data-theme', 'light');
+                localStorage.setItem('theme', 'light');
+                themeIcon.classList.replace('fa-moon', 'fa-sun');
             }
         });
     }
