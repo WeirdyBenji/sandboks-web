@@ -94,4 +94,43 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    // Prevent parent link click when clicking on the action zone (copy code area)
+    const promoActions = document.querySelectorAll('.promo-action');
+    promoActions.forEach(action => {
+        action.addEventListener('click', (e) => {
+            e.preventDefault();
+            // We don't need stopPropagation if we preventDefault on the click that would trigger the anchor
+        });
+    });
+
+    // Handle URL Hash Highlighting
+    function handleHashChange() {
+        // Remove existing highlights
+        document.querySelectorAll('.promo-card').forEach(card => {
+            card.classList.remove('highlight');
+        });
+
+        const hash = window.location.hash;
+        if (hash) {
+            try {
+                // The id is on the <a> tag (e.g. #jow)
+                const target = document.querySelector(hash);
+                if (target && target.classList.contains('links')) {
+                    const card = target.querySelector('.promo-card');
+                    if (card) {
+                        card.classList.add('highlight');
+                        // Optional: Smooth scroll to it if not already handled by browser
+                        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }
+            } catch (err) {
+                console.error('Invalid hash:', err);
+            }
+        }
+    }
+
+    // Listen for hash changes and check on load
+    window.addEventListener('hashchange', handleHashChange);
+    handleHashChange();
 });

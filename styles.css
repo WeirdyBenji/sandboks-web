@@ -3,7 +3,7 @@
     --bg-color: #0f172a;
     --text-color: #f8fafc;
     --text-secondary: #94a3b8;
-	--card-action: rgba(0, 0, 0, 0.3);
+    --card-action: rgba(0, 0, 0, 0.3);
     --card-bg: rgba(30, 41, 59, 0.7);
     --card-border: rgba(255, 255, 255, 0.1);
     --primary-color: #a855f7;
@@ -22,7 +22,7 @@
     --bg-color: #f8fafc;
     --text-color: #1e293b;
     --text-secondary: #64748b;
-	--card-action: rgba(200, 200, 200, 0.3);
+    --card-action: rgba(200, 200, 200, 0.3);
     --card-bg: rgba(255, 255, 255, 0.7);
     --card-border: rgba(0, 0, 0, 0.1);
     --primary-color: #9333ea;
@@ -455,13 +455,34 @@ body.party-mode .profile-image-container {
         justify-content: space-between;
         margin-top: 0.5rem;
     }
-	
-	.partner-logo {
-		display: none;
-	}
+
+    .partner-logo {
+        display: none;
+    }
 }
 
 .links {
     text-decoration: none;
-	color: inherit;
+    color: inherit;
+}
+
+/* Highlight Animation for Promos */
+.promo-card.highlight {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 30px rgba(217, 70, 239, 0.5);
+    animation: pulseHighlight 2s infinite;
+}
+
+@keyframes pulseHighlight {
+    0% {
+        box-shadow: 0 0 0 0 rgba(217, 70, 239, 0.7);
+    }
+
+    70% {
+        box-shadow: 0 0 0 10px rgba(217, 70, 239, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(217, 70, 239, 0);
+    }
 }
