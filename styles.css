@@ -315,6 +315,17 @@ body {
     padding: 0.5rem;
     border-radius: 8px;
     border: 1px solid var(--card-border);
+    cursor: default;
+}
+
+.promo-action2 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--card-action);
+    padding: 0.5rem;
+    border-radius: 8px;
+    border: 1px solid var(--card-border);
 }
 
 .promo-code {
