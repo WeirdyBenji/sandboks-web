@@ -419,27 +419,27 @@ body.party-mode .profile-image-container {
 
 @keyframes rainbowBg {
     0% {
-        background-color: #ef4444;
+        background: #ef4444;
     }
 
     20% {
-        background-color: #eab308;
+        background: #eab308;
     }
 
     40% {
-        background-color: #22c55e;
+        background: #22c55e;
     }
 
     60% {
-        background-color: #3b82f6;
+        background: #3b82f6;
     }
 
     80% {
-        background-color: #a855f7;
+        background: #a855f7;
     }
 
     100% {
-        background-color: #ef4444;
+        background: #ef4444;
     }
 }
 
