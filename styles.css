@@ -287,6 +287,14 @@ body {
     margin-bottom: 0.25rem;
 }
 
+.promo-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    color: var(--primary-color);
+}
+
 .partner-logo {
     width: 32px;
     height: 32px;
@@ -467,6 +475,7 @@ body.party-mode .profile-image-container {
         margin-top: 0.5rem;
     }
 
+    .promo-icon,
     .partner-logo {
         display: none;
     }
