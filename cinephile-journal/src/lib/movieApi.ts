@@ -14,17 +14,28 @@ export async function searchMovies(query: string): Promise<TMDbSearchResult[]> {
   
   try {
     const response = await fetch(
-      `${TMDB_BASE_URL}/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}&language=fr-FR`
+      `${TMDB_BASE_URL}/search/multi?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}&language=fr-FR`
     );
     
     if (!response.ok) throw new Error('Search failed');
     
     const data: TMDbSearchResponse = await response.json();
-    return data.results.slice(0, 8); // Limit to 8 results
+    return data.results
+      .filter((result) => result.media_type === 'movie' || result.media_type === 'tv')
+      .slice(0, 8);
   } catch (error) {
     console.error('Error searching movies:', error);
     return [];
   }
+}
+
+export function getResultTitle(result: TMDbSearchResult): string {
+  return result.title || result.name || '';
+}
+
+export function getResultYear(result: TMDbSearchResult): string {
+  const date = result.release_date || result.first_air_date || '';
+  return date ? date.split('-')[0] : '';
 }
 
 export interface RTScores {

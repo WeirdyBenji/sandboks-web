@@ -3,7 +3,7 @@ import { Search, Plus, Check, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { TMDbSearchResult } from '@/types/movie';
-import { searchMovies, getRottenTomatoesScores, getPosterUrl } from '@/lib/movieApi';
+import { searchMovies, getRottenTomatoesScores, getPosterUrl, getResultTitle, getResultYear } from '@/lib/movieApi';
 import {
   Command,
   CommandEmpty,
@@ -25,8 +25,11 @@ interface MovieSearchProps {
     poster: string;
     rtCriticsScore: number | null;
     rtAudienceScore: number | null;
+    rtUrl?: string;
+    category?: string;
+    mediaType?: 'movie' | 'tv';
   }, status: 'toWatch' | 'watched') => void;
-  isMovieInList: (tmdbId: number) => boolean;
+  isMovieInList: (tmdbId: number, mediaType?: 'movie' | 'tv') => boolean;
 }
 
 export function MovieSearch({ onAddMovie, isMovieInList }: MovieSearchProps) {
@@ -34,7 +37,7 @@ export function MovieSearch({ onAddMovie, isMovieInList }: MovieSearchProps) {
   const [results, setResults] = useState<TMDbSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
-  const [addingId, setAddingId] = useState<number | null>(null);
+  const [addingId, setAddingId] = useState<string | null>(null);
   const debounceRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
@@ -65,18 +68,26 @@ export function MovieSearch({ onAddMovie, isMovieInList }: MovieSearchProps) {
   }, [query]);
 
   const handleAddMovie = async (movie: TMDbSearchResult, status: 'toWatch' | 'watched') => {
-    setAddingId(movie.id);
+    const mediaType = movie.media_type === 'tv' ? 'tv' : 'movie';
+    const resultKey = `${mediaType}:${movie.id}`;
+    setAddingId(resultKey);
     
-    const year = movie.release_date ? movie.release_date.split('-')[0] : '';
-    const rtScores = await getRottenTomatoesScores(movie.title, year);
+    const title = getResultTitle(movie);
+    const year = getResultYear(movie);
+    const rtScores = mediaType === 'movie'
+      ? await getRottenTomatoesScores(title, year)
+      : { critics: null, audience: null };
     
     onAddMovie({
       tmdbId: movie.id,
-      title: movie.title,
+      mediaType,
+      title,
       year,
       poster: getPosterUrl(movie.poster_path),
       rtCriticsScore: rtScores.critics,
       rtAudienceScore: rtScores.audience,
+      rtUrl: `https://www.rottentomatoes.com/search?search=${encodeURIComponent(title)}`,
+      category: mediaType === 'tv' ? 'série' : 'film',
     }, status);
     
     setAddingId(null);
@@ -94,7 +105,7 @@ export function MovieSearch({ onAddMovie, isMovieInList }: MovieSearchProps) {
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Rechercher un film..."
+              placeholder="Rechercher un film ou une série..."
               className="pl-10 pr-10"
             />
             {isSearching && (
@@ -105,30 +116,35 @@ export function MovieSearch({ onAddMovie, isMovieInList }: MovieSearchProps) {
         <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
           <Command>
             <CommandList>
-              <CommandEmpty>Aucun film trouvé</CommandEmpty>
+              <CommandEmpty>Aucun film ou série trouvé</CommandEmpty>
               <CommandGroup>
                 {results.map((movie) => {
-                  const inList = isMovieInList(movie.id);
-                  const year = movie.release_date ? movie.release_date.split('-')[0] : 'N/A';
+                  const mediaType = movie.media_type === 'tv' ? 'tv' : 'movie';
+                  const resultKey = `${mediaType}:${movie.id}`;
+                  const inList = isMovieInList(movie.id, mediaType);
+                  const title = getResultTitle(movie);
+                  const year = getResultYear(movie) || 'N/A';
                   
                   return (
                     <CommandItem
-                      key={movie.id}
+                      key={resultKey}
                       className="flex items-center gap-3 p-2"
-                      disabled={inList || addingId === movie.id}
+                      disabled={inList || addingId === resultKey}
                     >
                       <img
                         src={getPosterUrl(movie.poster_path)}
-                        alt={movie.title}
+                        alt={title}
                         className="h-12 w-8 rounded object-cover"
                       />
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">{movie.title}</p>
-                        <p className="text-sm text-muted-foreground">{year}</p>
+                        <p className="font-medium truncate">{title}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {year} · {movie.media_type === 'tv' ? 'Série' : 'Film'}
+                        </p>
                       </div>
                       {inList ? (
                         <Check className="h-4 w-4 text-muted-foreground" />
-                      ) : addingId === movie.id ? (
+                      ) : addingId === resultKey ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
                         <div className="flex gap-1">

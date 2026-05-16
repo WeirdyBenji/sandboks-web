@@ -10,8 +10,12 @@ const COLUMN_VISIBILITY_KEY = 'movie-tracker-columns';
 
 const defaultColumnVisibility: ColumnVisibility = {
   poster: true,
-  year: true,
+  year: false,
+  enteredBy: false,
+  category: true,
   rtScores: true,
+  mar: true,
+  benji: true,
   actions: true,
 };
 
@@ -23,6 +27,13 @@ const Index = () => {
     removeMovie,
     moveMovie,
     updatePersonalNote,
+    updateWatchedAt,
+    updateEnteredBy,
+    updateTitle,
+    updateRottenTomatoesScores,
+    updateCategory,
+    updateMar,
+    updateBenji,
     isMovieInList,
     isLoaded,
   } = useMovies();
@@ -33,7 +44,7 @@ const Index = () => {
     const stored = localStorage.getItem(COLUMN_VISIBILITY_KEY);
     if (stored) {
       try {
-        setColumnVisibility(JSON.parse(stored));
+        setColumnVisibility({ ...defaultColumnVisibility, ...JSON.parse(stored) });
       } catch (e) {
         console.error('Failed to parse column visibility:', e);
       }
@@ -44,6 +55,27 @@ const Index = () => {
     setColumnVisibility(visibility);
     localStorage.setItem(COLUMN_VISIBILITY_KEY, JSON.stringify(visibility));
   };
+
+  const tabs = (
+    <TabsList>
+      <TabsTrigger value="toWatch" className="gap-2">
+        À voir
+        {toWatchMovies.length > 0 && (
+          <span className="ml-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs">
+            {toWatchMovies.length}
+          </span>
+        )}
+      </TabsTrigger>
+      <TabsTrigger value="watched" className="gap-2">
+        Vus
+        {watchedMovies.length > 0 && (
+          <span className="ml-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs">
+            {watchedMovies.length}
+          </span>
+        )}
+      </TabsTrigger>
+    </TabsList>
+  );
 
   if (!isLoaded) {
     return (
@@ -69,31 +101,20 @@ const Index = () => {
 
       <main className="container mx-auto px-4 py-6">
         <Tabs defaultValue="toWatch" className="w-full">
-          <TabsList className="mb-6">
-            <TabsTrigger value="toWatch" className="gap-2">
-              À voir
-              {toWatchMovies.length > 0 && (
-                <span className="ml-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs">
-                  {toWatchMovies.length}
-                </span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="watched" className="gap-2">
-              Vus
-              {watchedMovies.length > 0 && (
-                <span className="ml-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs">
-                  {watchedMovies.length}
-                </span>
-              )}
-            </TabsTrigger>
-          </TabsList>
-
           <TabsContent value="toWatch">
             <MovieList
               movies={toWatchMovies}
+              tabs={tabs}
               onRemove={removeMovie}
               onMove={moveMovie}
               onUpdateNote={updatePersonalNote}
+              onUpdateWatchedAt={updateWatchedAt}
+              onUpdateEnteredBy={updateEnteredBy}
+              onUpdateTitle={updateTitle}
+              onUpdateRottenTomatoesScores={updateRottenTomatoesScores}
+              onUpdateCategory={updateCategory}
+              onUpdateMar={updateMar}
+              onUpdateBenji={updateBenji}
               targetStatus="watched"
               emptyMessage="Aucun film à voir. Utilisez la recherche pour en ajouter !"
               columnVisibility={columnVisibility}
@@ -104,9 +125,17 @@ const Index = () => {
           <TabsContent value="watched">
             <MovieList
               movies={watchedMovies}
+              tabs={tabs}
               onRemove={removeMovie}
               onMove={moveMovie}
               onUpdateNote={updatePersonalNote}
+              onUpdateWatchedAt={updateWatchedAt}
+              onUpdateEnteredBy={updateEnteredBy}
+              onUpdateTitle={updateTitle}
+              onUpdateRottenTomatoesScores={updateRottenTomatoesScores}
+              onUpdateCategory={updateCategory}
+              onUpdateMar={updateMar}
+              onUpdateBenji={updateBenji}
               targetStatus="toWatch"
               emptyMessage="Aucun film vu pour l'instant."
               columnVisibility={columnVisibility}
