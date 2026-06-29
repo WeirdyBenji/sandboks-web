@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Search, Plus, Check, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -41,6 +41,23 @@ export function MovieSearch({ onAddMovie, isMovieInList }: MovieSearchProps) {
   const [addingId, setAddingId] = useState<string | null>(null);
   const debounceRef = useRef<NodeJS.Timeout>();
 
+  const executeSearch = useCallback(async (searchQuery: string) => {
+    const normalizedQuery = searchQuery.trim();
+
+    if (normalizedQuery.length < 2) {
+      setResults([]);
+      setIsOpen(false);
+      setIsSearching(false);
+      return;
+    }
+
+    setIsSearching(true);
+    const searchResults = await searchMovies(normalizedQuery);
+    setResults(searchResults);
+    setIsSearching(false);
+    setIsOpen(searchResults.length > 0);
+  }, []);
+
   useEffect(() => {
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
@@ -48,17 +65,14 @@ export function MovieSearch({ onAddMovie, isMovieInList }: MovieSearchProps) {
 
     if (query.trim().length < 2) {
       setResults([]);
+      setIsOpen(false);
+      setIsSearching(false);
       return;
     }
 
     setIsSearching(true);
-    debounceRef.current = setTimeout(async () => {
-      const searchResults = await searchMovies(query);
-      setResults(searchResults);
-      setIsSearching(false);
-      if (searchResults.length > 0) {
-        setIsOpen(true);
-      }
+    debounceRef.current = setTimeout(() => {
+      void executeSearch(query);
     }, 300);
 
     return () => {
@@ -66,7 +80,7 @@ export function MovieSearch({ onAddMovie, isMovieInList }: MovieSearchProps) {
         clearTimeout(debounceRef.current);
       }
     };
-  }, [query]);
+  }, [executeSearch, query]);
 
   const handleAddMovie = async (movie: TMDbSearchResult, status: 'toWatch' | 'watched') => {
     const mediaType = movie.media_type === 'tv' ? 'tv' : 'movie';
@@ -110,6 +124,17 @@ export function MovieSearch({ onAddMovie, isMovieInList }: MovieSearchProps) {
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key !== 'Enter') {
+                  return;
+                }
+
+                e.preventDefault();
+                if (debounceRef.current) {
+                  clearTimeout(debounceRef.current);
+                }
+                void executeSearch(query);
+              }}
               placeholder="Rechercher un film ou une série..."
               className="pl-10 pr-10"
             />
