@@ -8,7 +8,7 @@ description: Add films, TV shows, seasons, anime, and animation titles to Benji'
 ## Endpoint
 
 Apps Script endpoint:
-`https://script.google.com/macros/s/AKfycbz_zOeRUr9HnS015caH_AlcdjUQ1CuoMEV7QQf0Fj0_lBiXTidZ8S5wLGIoSkUvzmiU/exec`
+`https://script.google.com/macros/s/AKfycbzlXCD3i-NuQMIn-BJ8Xk7DhyPBCML8o7lxtUheAX3EJ-1WVdVNKa9Wh_-fU1Zp63wl/exec`
 
 Use only targeted mutations:
 - `addMovie` to create one row.
@@ -104,3 +104,4 @@ Summarize:
 - updated existing rows;
 - RT scores found;
 - scores or links still missing.
+

@@ -17,9 +17,87 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
-type SortField = 'addedAt' | 'rtCriticsScore' | 'rtAudienceScore' | 'year' | 'title' | 'category' | 'mar' | 'benji';
+type SortField = 'addedAt' | 'watchedAt' | 'whereToWatch' | 'rtCriticsScore' | 'rtAudienceScore' | 'year' | 'title' | 'category' | 'mar' | 'benji';
 type SortOrder = 'asc' | 'desc';
+
+const WHERE_TO_WATCH_PRIORITY = ['cinéma', 'Netflix', 'Prime Video', 'Disney+', 'HBO', 'Hulu'] as const;
+const UNKNOWN_WHERE_TO_WATCH_PRIORITY = WHERE_TO_WATCH_PRIORITY.length;
+const EMPTY_WHERE_TO_WATCH_PRIORITY = WHERE_TO_WATCH_PRIORITY.length + 1;
+
+function getWhereToWatchPlatforms(value?: string) {
+  return (value || '')
+    .split(',')
+    .map((platform) => platform.trim())
+    .filter(Boolean);
+}
+
+function getWhereToWatchPriority(platform: string) {
+  const priority = WHERE_TO_WATCH_PRIORITY.indexOf(platform as (typeof WHERE_TO_WATCH_PRIORITY)[number]);
+  return priority === -1 ? UNKNOWN_WHERE_TO_WATCH_PRIORITY : priority;
+}
+
+function compareWhereToWatch(a?: string, b?: string) {
+  const platformsA = getWhereToWatchPlatforms(a);
+  const platformsB = getWhereToWatchPlatforms(b);
+
+  if (platformsA.length === 0 && platformsB.length === 0) {
+    return 0;
+  }
+
+  const rankedPlatformsA = (platformsA.length > 0 ? platformsA : [''])
+    .map((platform) => ({
+      platform,
+      priority: platform ? getWhereToWatchPriority(platform) : EMPTY_WHERE_TO_WATCH_PRIORITY,
+    }))
+    .sort((left, right) => {
+      if (left.priority !== right.priority) {
+        return left.priority - right.priority;
+      }
+
+      return left.platform.localeCompare(right.platform);
+    });
+
+  const rankedPlatformsB = (platformsB.length > 0 ? platformsB : [''])
+    .map((platform) => ({
+      platform,
+      priority: platform ? getWhereToWatchPriority(platform) : EMPTY_WHERE_TO_WATCH_PRIORITY,
+    }))
+    .sort((left, right) => {
+      if (left.priority !== right.priority) {
+        return left.priority - right.priority;
+      }
+
+      return left.platform.localeCompare(right.platform);
+    });
+
+  const length = Math.max(rankedPlatformsA.length, rankedPlatformsB.length);
+  for (let index = 0; index < length; index += 1) {
+    const itemA = rankedPlatformsA[index];
+    const itemB = rankedPlatformsB[index];
+
+    if (!itemA) return -1;
+    if (!itemB) return 1;
+
+    if (itemA.priority !== itemB.priority) {
+      return itemA.priority - itemB.priority;
+    }
+
+    const platformComparison = itemA.platform.localeCompare(itemB.platform);
+    if (platformComparison !== 0) {
+      return platformComparison;
+    }
+  }
+
+  return 0;
+}
 
 interface MovieListProps {
   movies: Movie[];
@@ -60,14 +138,44 @@ export function MovieList({
 }: MovieListProps) {
   const [sortField, setSortField] = useState<SortField>('addedAt');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedWhereToWatch, setSelectedWhereToWatch] = useState('all');
+
+  const categoryOptions = useMemo(() => {
+    return Array.from(new Set(movies.map((movie) => movie.category || '').filter(Boolean))).sort((a, b) => a.localeCompare(b));
+  }, [movies]);
+
+  const whereToWatchOptions = useMemo(() => {
+    return Array.from(
+      new Set(
+        movies.flatMap((movie) => getWhereToWatchPlatforms(movie.whereToWatch))
+      )
+    ).sort(compareWhereToWatch);
+  }, [movies]);
+
+  const filteredMovies = useMemo(() => {
+    return movies.filter((movie) => {
+      const matchesCategory = selectedCategory === 'all' || (movie.category || '') === selectedCategory;
+      const matchesWhereToWatch =
+        selectedWhereToWatch === 'all' ||
+        getWhereToWatchPlatforms(movie.whereToWatch).includes(selectedWhereToWatch);
+      return matchesCategory && matchesWhereToWatch;
+    });
+  }, [movies, selectedCategory, selectedWhereToWatch]);
 
   const sortedMovies = useMemo(() => {
-    return [...movies].sort((a, b) => {
+    return [...filteredMovies].sort((a, b) => {
       let comparison = 0;
 
       switch (sortField) {
         case 'addedAt':
           comparison = new Date(a.addedAt).getTime() - new Date(b.addedAt).getTime();
+          break;
+        case 'watchedAt':
+          comparison = (a.watchedAt || '').localeCompare(b.watchedAt || '');
+          break;
+        case 'whereToWatch':
+          comparison = compareWhereToWatch(a.whereToWatch, b.whereToWatch);
           break;
         case 'rtCriticsScore':
           const criticsA = a.rtCriticsScore ?? -1;
@@ -98,7 +206,7 @@ export function MovieList({
 
       return sortOrder === 'desc' ? -comparison : comparison;
     });
-  }, [movies, sortField, sortOrder]);
+  }, [filteredMovies, sortField, sortOrder]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -107,7 +215,7 @@ export function MovieList({
     }
 
     setSortField(field);
-    setSortOrder(field === 'title' || field === 'category' ? 'asc' : 'desc');
+    setSortOrder(field === 'title' || field === 'category' || field === 'whereToWatch' ? 'asc' : 'desc');
   };
 
   const renderSortableHeader = (field: SortField, label: string, className?: string) => {
@@ -192,6 +300,16 @@ export function MovieList({
                   />
                 </div>
                 <div className="flex items-center justify-between">
+                  <Label htmlFor="show-where-to-watch" className="text-sm">Where to watch</Label>
+                  <Switch
+                    id="show-where-to-watch"
+                    checked={columnVisibility.whereToWatch}
+                    onCheckedChange={(checked) => 
+                      onColumnVisibilityChange({ ...columnVisibility, whereToWatch: checked })
+                    }
+                  />
+                </div>
+                <div className="flex items-center justify-between">
                   <Label htmlFor="show-rt" className="text-sm">Notes RT</Label>
                   <Switch
                     id="show-rt"
@@ -236,6 +354,37 @@ export function MovieList({
           </PopoverContent>
         </Popover>
       </div>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Catégorie" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Toutes les catégories</SelectItem>
+            {categoryOptions.map((category) => (
+              <SelectItem key={category} value={category}>
+                {category}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={selectedWhereToWatch} onValueChange={setSelectedWhereToWatch}>
+          <SelectTrigger className="w-[220px]">
+            <SelectValue placeholder="Where to watch" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Toutes les plateformes</SelectItem>
+            {whereToWatchOptions.map((whereToWatch) => (
+              <SelectItem key={whereToWatch} value={whereToWatch}>
+                {whereToWatch}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -245,6 +394,7 @@ export function MovieList({
               {columnVisibility.year && renderSortableHeader('year', 'Année', 'w-[80px]')}
               {columnVisibility.enteredBy && <TableHead className="w-[100px]">Entré par</TableHead>}
               {columnVisibility.category && renderSortableHeader('category', 'Catégorie', 'w-[130px]')}
+              {columnVisibility.whereToWatch && renderSortableHeader('whereToWatch', 'Where to watch', 'w-[180px]')}
               {columnVisibility.rtScores && (
                 <>
                   {renderSortableHeader('rtCriticsScore', 'RT Critiques', 'w-[100px]')}
@@ -252,7 +402,7 @@ export function MovieList({
                 </>
               )}
               <TableHead className="w-[200px]">Note personnelle</TableHead>
-              {targetStatus === 'toWatch' && <TableHead className="w-[140px]">Vu en</TableHead>}
+              {targetStatus === 'toWatch' && renderSortableHeader('watchedAt', 'Vu en', 'w-[140px]')}
               {columnVisibility.mar && renderSortableHeader('mar', 'Mar', 'w-[70px]')}
               {columnVisibility.benji && renderSortableHeader('benji', 'Benji', 'w-[70px]')}
               {columnVisibility.actions && <TableHead className="w-[120px]">Actions</TableHead>}
@@ -284,3 +434,4 @@ export function MovieList({
     </div>
   );
 }
+

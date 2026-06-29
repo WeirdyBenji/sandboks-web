@@ -5,6 +5,7 @@ export interface Movie {
   title: string;
   year: string;
   poster: string;
+  whereToWatch?: string;
   rtUrl?: string;
   rtCriticsScore: number | null;
   rtAudienceScore: number | null;
@@ -23,6 +24,7 @@ export interface ColumnVisibility {
   year: boolean;
   enteredBy: boolean;
   category: boolean;
+  whereToWatch: boolean;
   rtScores: boolean;
   mar: boolean;
   benji: boolean;

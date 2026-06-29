@@ -3,7 +3,7 @@ import { Search, Plus, Check, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { TMDbSearchResult } from '@/types/movie';
-import { searchMovies, getRottenTomatoesScores, getPosterUrl, getResultTitle, getResultYear } from '@/lib/movieApi';
+import { searchMovies, getRottenTomatoesScores, getPosterUrl, getResultTitle, getResultYear, getWhereToWatch } from '@/lib/movieApi';
 import {
   Command,
   CommandEmpty,
@@ -23,6 +23,7 @@ interface MovieSearchProps {
     title: string;
     year: string;
     poster: string;
+    whereToWatch?: string;
     rtCriticsScore: number | null;
     rtAudienceScore: number | null;
     rtUrl?: string;
@@ -71,25 +72,29 @@ export function MovieSearch({ onAddMovie, isMovieInList }: MovieSearchProps) {
     const mediaType = movie.media_type === 'tv' ? 'tv' : 'movie';
     const resultKey = `${mediaType}:${movie.id}`;
     setAddingId(resultKey);
-    
+
     const title = getResultTitle(movie);
     const year = getResultYear(movie);
-    const rtScores = mediaType === 'movie'
-      ? await getRottenTomatoesScores(title, year)
-      : { critics: null, audience: null };
-    
+    const [rtScores, whereToWatch] = await Promise.all([
+      mediaType === 'movie'
+        ? getRottenTomatoesScores(title, year)
+        : Promise.resolve({ critics: null, audience: null }),
+      getWhereToWatch(movie.id, mediaType),
+    ]);
+
     onAddMovie({
       tmdbId: movie.id,
       mediaType,
       title,
       year,
       poster: getPosterUrl(movie.poster_path),
+      whereToWatch,
       rtCriticsScore: rtScores.critics,
       rtAudienceScore: rtScores.audience,
       rtUrl: `https://www.rottentomatoes.com/search?search=${encodeURIComponent(title)}`,
       category: mediaType === 'tv' ? 'série' : 'film',
     }, status);
-    
+
     setAddingId(null);
     setQuery('');
     setResults([]);
@@ -124,7 +129,7 @@ export function MovieSearch({ onAddMovie, isMovieInList }: MovieSearchProps) {
                   const inList = isMovieInList(movie.id, mediaType);
                   const title = getResultTitle(movie);
                   const year = getResultYear(movie) || 'N/A';
-                  
+
                   return (
                     <CommandItem
                       key={resultKey}

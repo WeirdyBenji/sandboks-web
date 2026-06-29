@@ -13,6 +13,7 @@ const defaultColumnVisibility: ColumnVisibility = {
   year: false,
   enteredBy: false,
   category: true,
+  whereToWatch: true,
   rtScores: true,
   mar: true,
   benji: true,

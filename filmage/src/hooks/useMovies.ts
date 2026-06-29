@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Movie } from '@/types/movie';
 
-const SHEETS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbz_zOeRUr9HnS015caH_AlcdjUQ1CuoMEV7QQf0Fj0_lBiXTidZ8S5wLGIoSkUvzmiU/exec';
+const SHEETS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzlXCD3i-NuQMIn-BJ8Xk7DhyPBCML8o7lxtUheAX3EJ-1WVdVNKa9Wh_-fU1Zp63wl/exec';
 
 interface MoviesResponse {
   movies?: Movie[];
@@ -139,6 +139,7 @@ function normalizeMovie(movie: Movie): Movie {
   return {
     ...movie,
     mediaType: getMediaType(movie),
+    whereToWatch: movie.whereToWatch || '',
     rtUrl: movie.rtUrl || getRottenTomatoesSearchUrl(movie.title),
     category: movie.category || getDefaultCategory(movie),
     mar: Boolean(movie.mar),
@@ -315,4 +316,6 @@ export function useMovies() {
     isLoaded,
   };
 }
+
+
 

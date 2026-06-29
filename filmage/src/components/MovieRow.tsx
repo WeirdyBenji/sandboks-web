@@ -345,6 +345,11 @@ export function MovieRow({
           </Select>
         </TableCell>
       )}
+      {columnVisibility.whereToWatch && (
+        <TableCell className="text-sm text-muted-foreground">
+          {movie.whereToWatch || '—'}
+        </TableCell>
+      )}
       {columnVisibility.rtScores && (
         <>
           <TableCell>{renderScore('critics')}</TableCell>
@@ -438,3 +443,4 @@ export function MovieRow({
     </TableRow>
   );
 }
+
