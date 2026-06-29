@@ -12,39 +12,14 @@ interface MoviesResponse {
   };
 }
 
-declare global {
-  interface Window {
-    [callbackName: `loadMoviesFromSheet${string}`]: ((data: MoviesResponse) => void) | undefined;
-  }
-}
-
 async function loadMoviesFromSheet(): Promise<MoviesResponse> {
-  return new Promise((resolve, reject) => {
-    const callbackName = `loadMoviesFromSheet${crypto.randomUUID().replaceAll('-', '')}` as const;
-    const script = document.createElement('script');
-    const timeout = window.setTimeout(() => {
-      cleanup();
-      reject(new Error('Timed out loading movies from Google Sheets'));
-    }, 10000);
+  const response = await fetch(SHEETS_WEB_APP_URL);
 
-    const cleanup = () => {
-      window.clearTimeout(timeout);
-      script.remove();
-      delete window[callbackName];
-    };
+  if (!response.ok) {
+    throw new Error(`Failed to load movies from Google Sheets (${response.status})`);
+  }
 
-    window[callbackName] = (data: MoviesResponse) => {
-      cleanup();
-      resolve(data);
-    };
-
-    script.onerror = () => {
-      cleanup();
-      reject(new Error('Failed to load movies from Google Sheets'));
-    };
-    script.src = `${SHEETS_WEB_APP_URL}?callback=${callbackName}`;
-    document.body.appendChild(script);
-  });
+  return response.json();
 }
 
 async function postToSheet(body: unknown) {
@@ -340,3 +315,4 @@ export function useMovies() {
     isLoaded,
   };
 }
+
