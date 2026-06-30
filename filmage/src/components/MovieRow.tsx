@@ -151,6 +151,9 @@ export function MovieRow({
   };
 
   const rottenTomatoesUrl = movie.rtUrl || `https://www.rottentomatoes.com/search?search=${encodeURIComponent(movie.title)}`;
+  const largePosterUrl = movie.poster.includes('/t/p/')
+    ? movie.poster.replace('/w92/', '/w500/')
+    : movie.poster;
   const watchedMonth = getWatchedMonth(movie.watchedAt);
   const categoryOptions = movie.category && !categories.includes(movie.category)
     ? [movie.category, ...categories]
@@ -261,7 +264,7 @@ export function MovieRow({
             <DialogContent className="max-w-4xl border-0 bg-transparent p-0 shadow-none">
               <DialogTitle className="sr-only">Affiche de {movie.title}</DialogTitle>
               <img
-                src={movie.poster}
+                src={largePosterUrl}
                 alt={movie.title}
                 className="max-h-[85vh] w-full rounded-lg object-contain"
               />
@@ -471,4 +474,3 @@ export function MovieRow({
     </TableRow>
   );
 }
-

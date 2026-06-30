@@ -2,9 +2,15 @@ import { ReactNode, useState, useMemo } from 'react';
 import { Movie, ColumnVisibility } from '@/types/movie';
 import { MovieRow } from '@/components/MovieRow';
 import { Button } from '@/components/ui/button';
-import { ArrowUpDown, ArrowUp, ArrowDown, Settings2 } from 'lucide-react';
+import { ArrowUpDown, ArrowUp, ArrowDown, Check, LayoutGrid, Settings2 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import {
   Table,
   TableBody,
@@ -27,10 +33,12 @@ import {
 
 type SortField = 'addedAt' | 'watchedAt' | 'whereToWatch' | 'rtCriticsScore' | 'rtAudienceScore' | 'year' | 'title' | 'category' | 'mar' | 'benji';
 type SortOrder = 'asc' | 'desc';
+type ViewMode = 'table' | 'carousel';
 
 const WHERE_TO_WATCH_PRIORITY = ['Cinéma', 'Netflix', 'Prime Video', 'Disney+', 'HBO', 'Hulu'] as const;
 const UNKNOWN_WHERE_TO_WATCH_PRIORITY = WHERE_TO_WATCH_PRIORITY.length;
 const EMPTY_WHERE_TO_WATCH_PRIORITY = WHERE_TO_WATCH_PRIORITY.length + 1;
+const WITHOUT_PLATFORM_LABEL = 'Sans plateforme';
 
 function getWhereToWatchPlatforms(value?: string) {
   return (value || '')
@@ -140,6 +148,7 @@ export function MovieList({
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedWhereToWatch, setSelectedWhereToWatch] = useState('all');
+  const [viewMode, setViewMode] = useState<ViewMode>('table');
 
   const categoryOptions = useMemo(() => {
     return Array.from(new Set(movies.map((movie) => movie.category || '').filter(Boolean))).sort((a, b) => a.localeCompare(b));
@@ -178,14 +187,10 @@ export function MovieList({
           comparison = compareWhereToWatch(a.whereToWatch, b.whereToWatch);
           break;
         case 'rtCriticsScore':
-          const criticsA = a.rtCriticsScore ?? -1;
-          const criticsB = b.rtCriticsScore ?? -1;
-          comparison = criticsA - criticsB;
+          comparison = (a.rtCriticsScore ?? -1) - (b.rtCriticsScore ?? -1);
           break;
         case 'rtAudienceScore':
-          const audienceA = a.rtAudienceScore ?? -1;
-          const audienceB = b.rtAudienceScore ?? -1;
-          comparison = audienceA - audienceB;
+          comparison = (a.rtAudienceScore ?? -1) - (b.rtAudienceScore ?? -1);
           break;
         case 'year':
           comparison = (a.year || '0').localeCompare(b.year || '0');
@@ -208,9 +213,45 @@ export function MovieList({
     });
   }, [filteredMovies, sortField, sortOrder]);
 
+  const carouselSections = useMemo(() => {
+    const sectionMap = new Map<string, Movie[]>();
+
+    sortedMovies.forEach((movie) => {
+      const platforms = getWhereToWatchPlatforms(movie.whereToWatch);
+      if (platforms.length === 0) {
+        const sectionMovies = sectionMap.get(WITHOUT_PLATFORM_LABEL) || [];
+        sectionMovies.push(movie);
+        sectionMap.set(WITHOUT_PLATFORM_LABEL, sectionMovies);
+        return;
+      }
+
+      platforms.forEach((platform) => {
+        const sectionMovies = sectionMap.get(platform) || [];
+        sectionMovies.push(movie);
+        sectionMap.set(platform, sectionMovies);
+      });
+    });
+
+    return Array.from(sectionMap.entries())
+      .sort(([platformA], [platformB]) => {
+        if (platformA === WITHOUT_PLATFORM_LABEL) {
+          return 1;
+        }
+        if (platformB === WITHOUT_PLATFORM_LABEL) {
+          return -1;
+        }
+
+        return compareWhereToWatch(platformA, platformB);
+      })
+      .map(([platform, sectionMovies]) => ({
+        platform,
+        movies: sectionMovies,
+      }));
+  }, [sortedMovies]);
+
   const handleSort = (field: SortField) => {
     if (sortField === field) {
-      setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+      setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
       return;
     }
 
@@ -248,111 +289,121 @@ export function MovieList({
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2 flex-wrap">
         {tabs}
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className="ml-auto">
-              <Settings2 className="h-4 w-4 mr-2" />
-              Colonnes
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-56" align="end">
-            <div className="space-y-3">
-              <h4 className="font-medium text-sm">Afficher les colonnes</h4>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="show-poster" className="text-sm">Affiche</Label>
-                  <Switch
-                    id="show-poster"
-                    checked={columnVisibility.poster}
-                    onCheckedChange={(checked) => 
-                      onColumnVisibilityChange({ ...columnVisibility, poster: checked })
-                    }
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="show-year" className="text-sm">Année</Label>
-                  <Switch
-                    id="show-year"
-                    checked={columnVisibility.year}
-                    onCheckedChange={(checked) => 
-                      onColumnVisibilityChange({ ...columnVisibility, year: checked })
-                    }
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="show-entered-by" className="text-sm">Entré par</Label>
-                  <Switch
-                    id="show-entered-by"
-                    checked={columnVisibility.enteredBy}
-                    onCheckedChange={(checked) => 
-                      onColumnVisibilityChange({ ...columnVisibility, enteredBy: checked })
-                    }
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="show-category" className="text-sm">Catégorie</Label>
-                  <Switch
-                    id="show-category"
-                    checked={columnVisibility.category}
-                    onCheckedChange={(checked) => 
-                      onColumnVisibilityChange({ ...columnVisibility, category: checked })
-                    }
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="show-where-to-watch" className="text-sm">Where to watch</Label>
-                  <Switch
-                    id="show-where-to-watch"
-                    checked={columnVisibility.whereToWatch}
-                    onCheckedChange={(checked) => 
-                      onColumnVisibilityChange({ ...columnVisibility, whereToWatch: checked })
-                    }
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="show-rt" className="text-sm">Notes RT</Label>
-                  <Switch
-                    id="show-rt"
-                    checked={columnVisibility.rtScores}
-                    onCheckedChange={(checked) => 
-                      onColumnVisibilityChange({ ...columnVisibility, rtScores: checked })
-                    }
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="show-mar" className="text-sm">Mar</Label>
-                  <Switch
-                    id="show-mar"
-                    checked={columnVisibility.mar}
-                    onCheckedChange={(checked) => 
-                      onColumnVisibilityChange({ ...columnVisibility, mar: checked })
-                    }
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="show-benji" className="text-sm">Benji</Label>
-                  <Switch
-                    id="show-benji"
-                    checked={columnVisibility.benji}
-                    onCheckedChange={(checked) => 
-                      onColumnVisibilityChange({ ...columnVisibility, benji: checked })
-                    }
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="show-actions" className="text-sm">Actions</Label>
-                  <Switch
-                    id="show-actions"
-                    checked={columnVisibility.actions}
-                    onCheckedChange={(checked) => 
-                      onColumnVisibilityChange({ ...columnVisibility, actions: checked })
-                    }
-                  />
+        <div className="ml-auto flex items-center gap-2">
+          <Button
+            variant={viewMode === 'table' ? 'secondary' : 'outline'}
+            size="sm"
+            onClick={() => setViewMode((prev) => (prev === 'table' ? 'carousel' : 'table'))}
+          >
+            {viewMode === 'table' ? <LayoutGrid className="mr-2 h-4 w-4" /> : <Check className="mr-2 h-4 w-4" />}
+            {viewMode === 'table' ? 'Carrousel' : 'Table'}
+          </Button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Settings2 className="h-4 w-4 mr-2" />
+                Colonnes
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-56" align="end">
+              <div className="space-y-3">
+                <h4 className="font-medium text-sm">Afficher les colonnes</h4>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="show-poster" className="text-sm">Affiche</Label>
+                    <Switch
+                      id="show-poster"
+                      checked={columnVisibility.poster}
+                      onCheckedChange={(checked) =>
+                        onColumnVisibilityChange({ ...columnVisibility, poster: checked })
+                      }
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="show-year" className="text-sm">Année</Label>
+                    <Switch
+                      id="show-year"
+                      checked={columnVisibility.year}
+                      onCheckedChange={(checked) =>
+                        onColumnVisibilityChange({ ...columnVisibility, year: checked })
+                      }
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="show-entered-by" className="text-sm">Entré par</Label>
+                    <Switch
+                      id="show-entered-by"
+                      checked={columnVisibility.enteredBy}
+                      onCheckedChange={(checked) =>
+                        onColumnVisibilityChange({ ...columnVisibility, enteredBy: checked })
+                      }
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="show-category" className="text-sm">Catégorie</Label>
+                    <Switch
+                      id="show-category"
+                      checked={columnVisibility.category}
+                      onCheckedChange={(checked) =>
+                        onColumnVisibilityChange({ ...columnVisibility, category: checked })
+                      }
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="show-where-to-watch" className="text-sm">Where to watch</Label>
+                    <Switch
+                      id="show-where-to-watch"
+                      checked={columnVisibility.whereToWatch}
+                      onCheckedChange={(checked) =>
+                        onColumnVisibilityChange({ ...columnVisibility, whereToWatch: checked })
+                      }
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="show-rt" className="text-sm">Notes RT</Label>
+                    <Switch
+                      id="show-rt"
+                      checked={columnVisibility.rtScores}
+                      onCheckedChange={(checked) =>
+                        onColumnVisibilityChange({ ...columnVisibility, rtScores: checked })
+                      }
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="show-mar" className="text-sm">Mar</Label>
+                    <Switch
+                      id="show-mar"
+                      checked={columnVisibility.mar}
+                      onCheckedChange={(checked) =>
+                        onColumnVisibilityChange({ ...columnVisibility, mar: checked })
+                      }
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="show-benji" className="text-sm">Benji</Label>
+                    <Switch
+                      id="show-benji"
+                      checked={columnVisibility.benji}
+                      onCheckedChange={(checked) =>
+                        onColumnVisibilityChange({ ...columnVisibility, benji: checked })
+                      }
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="show-actions" className="text-sm">Actions</Label>
+                    <Switch
+                      id="show-actions"
+                      checked={columnVisibility.actions}
+                      onCheckedChange={(checked) =>
+                        onColumnVisibilityChange({ ...columnVisibility, actions: checked })
+                      }
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
-          </PopoverContent>
-        </Popover>
+            </PopoverContent>
+          </Popover>
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -385,54 +436,140 @@ export function MovieList({
         </Select>
       </div>
 
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              {columnVisibility.poster && <TableHead className="w-[60px]">Affiche</TableHead>}
-              {renderSortableHeader('title', 'Titre')}
-              {columnVisibility.year && renderSortableHeader('year', 'Année', 'w-[80px]')}
-              {columnVisibility.enteredBy && <TableHead className="w-[100px]">Entré par</TableHead>}
-              {columnVisibility.category && renderSortableHeader('category', 'Catégorie', 'w-[130px]')}
-              {columnVisibility.whereToWatch && renderSortableHeader('whereToWatch', 'Where to watch', 'w-[180px]')}
-              {columnVisibility.rtScores && (
-                <>
-                  {renderSortableHeader('rtCriticsScore', 'RT Critiques', 'w-[100px]')}
-                  {renderSortableHeader('rtAudienceScore', 'RT Audience', 'w-[100px]')}
-                </>
-              )}
-              <TableHead className="w-[200px]">Note personnelle</TableHead>
-              {targetStatus === 'toWatch' && renderSortableHeader('watchedAt', 'Vu en', 'w-[140px]')}
-              {columnVisibility.mar && renderSortableHeader('mar', 'Mar', 'w-[70px]')}
-              {columnVisibility.benji && renderSortableHeader('benji', 'Benji', 'w-[70px]')}
-              {columnVisibility.actions && <TableHead className="w-[120px]">Actions</TableHead>}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {sortedMovies.map((movie) => (
-              <MovieRow
-                key={movie.id}
-                movie={movie}
-                showEnteredBy={columnVisibility.enteredBy}
-                onRemove={onRemove}
-                onMove={onMove}
-                onUpdateNote={onUpdateNote}
-                onUpdateWatchedAt={onUpdateWatchedAt}
-                onUpdateEnteredBy={onUpdateEnteredBy}
-                onUpdateTitle={onUpdateTitle}
-                onUpdateRottenTomatoesScores={onUpdateRottenTomatoesScores}
-                onUpdateCategory={onUpdateCategory}
-                onUpdateMar={onUpdateMar}
-                onUpdateBenji={onUpdateBenji}
-                targetStatus={targetStatus}
-                columnVisibility={columnVisibility}
-              />
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+      {viewMode === 'table' ? (
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                {columnVisibility.poster && <TableHead className="w-[60px]">Affiche</TableHead>}
+                {renderSortableHeader('title', 'Titre')}
+                {columnVisibility.year && renderSortableHeader('year', 'Année', 'w-[80px]')}
+                {columnVisibility.enteredBy && <TableHead className="w-[100px]">Entré par</TableHead>}
+                {columnVisibility.category && renderSortableHeader('category', 'Catégorie', 'w-[130px]')}
+                {columnVisibility.whereToWatch && renderSortableHeader('whereToWatch', 'Where to watch', 'w-[180px]')}
+                {columnVisibility.rtScores && (
+                  <>
+                    {renderSortableHeader('rtCriticsScore', 'RT Critiques', 'w-[100px]')}
+                    {renderSortableHeader('rtAudienceScore', 'RT Audience', 'w-[100px]')}
+                  </>
+                )}
+                <TableHead className="w-[200px]">Note personnelle</TableHead>
+                {targetStatus === 'toWatch' && renderSortableHeader('watchedAt', 'Vu en', 'w-[140px]')}
+                {columnVisibility.mar && renderSortableHeader('mar', 'Mar', 'w-[70px]')}
+                {columnVisibility.benji && renderSortableHeader('benji', 'Benji', 'w-[70px]')}
+                {columnVisibility.actions && <TableHead className="w-[120px]">Actions</TableHead>}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {sortedMovies.map((movie) => (
+                <MovieRow
+                  key={movie.id}
+                  movie={movie}
+                  showEnteredBy={columnVisibility.enteredBy}
+                  onRemove={onRemove}
+                  onMove={onMove}
+                  onUpdateNote={onUpdateNote}
+                  onUpdateWatchedAt={onUpdateWatchedAt}
+                  onUpdateEnteredBy={onUpdateEnteredBy}
+                  onUpdateTitle={onUpdateTitle}
+                  onUpdateRottenTomatoesScores={onUpdateRottenTomatoesScores}
+                  onUpdateCategory={onUpdateCategory}
+                  onUpdateMar={onUpdateMar}
+                  onUpdateBenji={onUpdateBenji}
+                  targetStatus={targetStatus}
+                  columnVisibility={columnVisibility}
+                />
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      ) : (
+        <div className="space-y-8">
+          {carouselSections.map((section) => (
+            <section key={section.platform} className="space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-lg font-semibold">{section.platform}</h3>
+                  <p className="text-sm text-muted-foreground">{section.movies.length} titre{section.movies.length > 1 ? 's' : ''}</p>
+                </div>
+              </div>
+              <div className="overflow-x-auto pb-2">
+                <div className="flex gap-4">
+                  {section.movies.map((movie) => {
+                    const largePosterUrl = movie.poster.includes('/t/p/')
+                      ? movie.poster.replace('/w92/', '/w500/')
+                      : movie.poster;
+                    const targetLabel = targetStatus === 'watched' ? 'Vu' : 'À revoir';
+
+                    return (
+                      <div
+                        key={`${section.platform}-${movie.id}`}
+                        className="w-[180px] shrink-0 space-y-3 rounded-xl border bg-card/70 p-3"
+                      >
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <button
+                              type="button"
+                              className="block w-full overflow-hidden rounded-lg"
+                              aria-label={`Ouvrir l'affiche de ${movie.title}`}
+                            >
+                              <img
+                                src={movie.poster}
+                                alt={movie.title}
+                                className="aspect-[2/3] w-full rounded-lg object-cover transition-transform hover:scale-[1.02]"
+                              />
+                            </button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-4xl border-0 bg-transparent p-0 shadow-none">
+                            <DialogTitle className="sr-only">Affiche de {movie.title}</DialogTitle>
+                            <img
+                              src={largePosterUrl}
+                              alt={movie.title}
+                              className="max-h-[85vh] w-full rounded-lg object-contain"
+                            />
+                          </DialogContent>
+                        </Dialog>
+
+                        <div className="space-y-1">
+                          <a
+                            href={movie.rtUrl || `https://www.rottentomatoes.com/search?search=${encodeURIComponent(movie.title)}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="line-clamp-2 text-sm font-semibold leading-tight hover:underline"
+                          >
+                            {movie.title}
+                          </a>
+                          <p className="text-xs text-muted-foreground">{movie.year || 'N/A'}{movie.category ? ` · ${movie.category}` : ''}</p>
+                          <p className="line-clamp-2 text-xs text-muted-foreground">{movie.whereToWatch || WITHOUT_PLATFORM_LABEL}</p>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => onMove(movie.id, targetStatus)}
+                          >
+                            {targetStatus === 'watched' ? <Check className="mr-2 h-4 w-4" /> : <LayoutGrid className="mr-2 h-4 w-4" />}
+                            {targetLabel}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => onRemove(movie.id)}
+                          >
+                            Retirer
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </section>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
-
 

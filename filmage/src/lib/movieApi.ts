@@ -1,7 +1,7 @@
 import { TMDbSearchResponse, TMDbSearchResult } from '@/types/movie';
 
 // TMDb API - Free tier with attribution
-const TMDB_API_KEY = import.meta.env.VITE_TMDB_API_KEY;
+const TMDB_API_KEY = import.meta.env.TMDB_API_KEY;
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p/w92';
 
@@ -140,4 +140,5 @@ export function getPosterUrl(posterPath: string | null): string {
   if (!posterPath) return '/placeholder.svg';
   return `${TMDB_IMAGE_BASE}${posterPath}`;
 }
+
 
