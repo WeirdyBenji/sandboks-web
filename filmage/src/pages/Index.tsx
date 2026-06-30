@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Film, Monitor, Moon, Sun } from 'lucide-react';
+import { Clock3, Film, Monitor, Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MovieSearch } from '@/components/MovieSearch';
@@ -15,6 +15,9 @@ import {
 } from '@/components/ui/select';
 
 const COLUMN_VISIBILITY_KEY = 'movie-tracker-columns';
+const THEME_MODE_KEY = 'movie-tracker-theme-mode';
+
+type ThemeMode = 'system' | 'auto' | 'light' | 'dark';
 
 const defaultColumnVisibility: ColumnVisibility = {
   poster: true,
@@ -23,8 +26,8 @@ const defaultColumnVisibility: ColumnVisibility = {
   category: true,
   whereToWatch: true,
   rtScores: true,
-  mar: true,
-  benji: true,
+  mar: false,
+  benji: false,
   actions: true,
 };
 
@@ -47,8 +50,9 @@ const Index = () => {
     isLoaded,
   } = useMovies();
 
-  const { theme = 'system', setTheme, resolvedTheme = 'light' } = useTheme();
+  const { setTheme } = useTheme();
   const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>(defaultColumnVisibility);
+  const [themeMode, setThemeMode] = useState<ThemeMode>('system');
   const [themeClock, setThemeClock] = useState(() => Date.now());
 
   useEffect(() => {
@@ -63,6 +67,13 @@ const Index = () => {
   }, []);
 
   useEffect(() => {
+    const storedThemeMode = localStorage.getItem(THEME_MODE_KEY);
+    if (storedThemeMode === 'system' || storedThemeMode === 'auto' || storedThemeMode === 'light' || storedThemeMode === 'dark') {
+      setThemeMode(storedThemeMode);
+    }
+  }, []);
+
+  useEffect(() => {
     const intervalId = window.setInterval(() => {
       setThemeClock(Date.now());
     }, 60000);
@@ -73,16 +84,13 @@ const Index = () => {
   }, []);
 
   useEffect(() => {
-    const baseTheme = theme === 'system' ? resolvedTheme : theme;
     const hour = new Date(themeClock).getHours();
-    const isNightHour = hour >= 22 || hour < 5;
-    const effectiveTheme = baseTheme === 'light' && isNightHour ? 'dark' : baseTheme;
-    const root = window.document.documentElement;
+    const autoTheme = hour >= 22 || hour < 6 ? 'dark' : 'light';
+    const appliedTheme = themeMode === 'auto' ? autoTheme : themeMode;
 
-    root.classList.toggle('dark', effectiveTheme === 'dark');
-    root.classList.toggle('light', effectiveTheme !== 'dark');
-    root.style.colorScheme = effectiveTheme === 'dark' ? 'dark' : 'light';
-  }, [resolvedTheme, theme, themeClock]);
+    setTheme(appliedTheme);
+    localStorage.setItem(THEME_MODE_KEY, themeMode);
+  }, [setTheme, themeClock, themeMode]);
 
   const handleColumnVisibilityChange = (visibility: ColumnVisibility) => {
     setColumnVisibility(visibility);
@@ -128,7 +136,7 @@ const Index = () => {
               <h1 className="text-xl font-bold">Movie Tracker</h1>
             </div>
             <div className="flex w-full flex-col gap-3 sm:flex-1 sm:flex-row sm:items-center sm:justify-end">
-              <Select value={theme} onValueChange={setTheme}>
+              <Select value={themeMode} onValueChange={(value) => setThemeMode(value as ThemeMode)}>
                 <SelectTrigger className="w-full sm:w-[160px] sm:flex-none">
                   <SelectValue placeholder="Thème" />
                 </SelectTrigger>
@@ -137,6 +145,12 @@ const Index = () => {
                     <span className="flex items-center gap-2">
                       <Monitor className="h-4 w-4" />
                       Système
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="auto">
+                    <span className="flex items-center gap-2">
+                      <Clock3 className="h-4 w-4" />
+                      Auto
                     </span>
                   </SelectItem>
                   <SelectItem value="light">
@@ -211,6 +225,4 @@ const Index = () => {
 };
 
 export default Index;
-
-
 

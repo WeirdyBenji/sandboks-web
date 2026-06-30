@@ -28,7 +28,7 @@ import {
 type SortField = 'addedAt' | 'watchedAt' | 'whereToWatch' | 'rtCriticsScore' | 'rtAudienceScore' | 'year' | 'title' | 'category' | 'mar' | 'benji';
 type SortOrder = 'asc' | 'desc';
 
-const WHERE_TO_WATCH_PRIORITY = ['cinéma', 'Netflix', 'Prime Video', 'Disney+', 'HBO', 'Hulu'] as const;
+const WHERE_TO_WATCH_PRIORITY = ['Cinéma', 'Netflix', 'Prime Video', 'Disney+', 'HBO', 'Hulu'] as const;
 const UNKNOWN_WHERE_TO_WATCH_PRIORITY = WHERE_TO_WATCH_PRIORITY.length;
 const EMPTY_WHERE_TO_WATCH_PRIORITY = WHERE_TO_WATCH_PRIORITY.length + 1;
 
@@ -434,4 +434,5 @@ export function MovieList({
     </div>
   );
 }
+
 

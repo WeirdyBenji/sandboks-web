@@ -1,31 +1,14 @@
-import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
 import { Toaster as Sonner, toast } from "sonner";
 
 type ToasterProps = React.ComponentProps<typeof Sonner>;
 
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system", resolvedTheme = "light" } = useTheme();
-  const [themeClock, setThemeClock] = useState(() => Date.now());
-
-  useEffect(() => {
-    const intervalId = window.setInterval(() => {
-      setThemeClock(Date.now());
-    }, 60000);
-
-    return () => {
-      window.clearInterval(intervalId);
-    };
-  }, []);
-
-  const baseTheme = theme === "system" ? resolvedTheme : theme;
-  const hour = new Date(themeClock).getHours();
-  const isNightHour = hour >= 22 || hour < 5;
-  const effectiveTheme = baseTheme === "light" && isNightHour ? "dark" : baseTheme;
+  const { resolvedTheme = "light" } = useTheme();
 
   return (
     <Sonner
-      theme={effectiveTheme as ToasterProps["theme"]}
+      theme={resolvedTheme as ToasterProps["theme"]}
       className="toaster group"
       toastOptions={{
         classNames: {

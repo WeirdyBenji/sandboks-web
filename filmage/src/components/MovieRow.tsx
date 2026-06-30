@@ -2,6 +2,12 @@ import { useRef, useState } from 'react';
 import { Movie, ColumnVisibility } from '@/types/movie';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Trash2, ArrowRight, Check, X, Edit2 } from 'lucide-react';
@@ -238,11 +244,29 @@ export function MovieRow({
     <TableRow>
       {columnVisibility.poster && (
         <TableCell>
-          <img
-            src={movie.poster}
-            alt={movie.title}
-            className="h-12 w-8 rounded object-cover"
-          />
+          <Dialog>
+            <DialogTrigger asChild>
+              <button
+                type="button"
+                className="block rounded transition-opacity hover:opacity-80"
+                aria-label={`Ouvrir l'affiche de ${movie.title}`}
+              >
+                <img
+                  src={movie.poster}
+                  alt={movie.title}
+                  className="h-12 w-8 rounded object-cover"
+                />
+              </button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl border-0 bg-transparent p-0 shadow-none">
+              <DialogTitle className="sr-only">Affiche de {movie.title}</DialogTitle>
+              <img
+                src={movie.poster}
+                alt={movie.title}
+                className="max-h-[85vh] w-full rounded-lg object-contain"
+              />
+            </DialogContent>
+          </Dialog>
         </TableCell>
       )}
       <TableCell className="font-medium">
@@ -377,7 +401,7 @@ export function MovieRow({
             </Button>
           </div>
         ) : (
-          <div 
+          <div
             className="flex items-center gap-2 cursor-pointer group"
             onClick={() => setIsEditingNote(true)}
           >
@@ -426,7 +450,11 @@ export function MovieRow({
               onClick={() => onMove(movie.id, targetStatus)}
               title={targetStatus === 'watched' ? 'Marquer comme vu' : 'Remettre à voir'}
             >
-              <ArrowRight className="h-4 w-4" />
+              {targetStatus === 'watched' ? (
+                <Check className="h-4 w-4" />
+              ) : (
+                <ArrowRight className="h-4 w-4" />
+              )}
             </Button>
             <Button
               variant="ghost"
