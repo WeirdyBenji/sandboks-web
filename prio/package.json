@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "start": "vite preview --host 127.0.0.1 --port 3006 --strictPort"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

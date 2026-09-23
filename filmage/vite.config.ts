@@ -5,6 +5,10 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  base: "/filmage/",
+  preview: {
+    allowedHosts: ["b.kase-app.fr"],
+  },
   server: {
     host: "::",
     port: 8080,
