@@ -1,0 +1,2416 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="Outils internes pour partager des fichiers, préparer un favicon et assembler des PDF." />
+<link rel="icon" href="/favicon.ico" />
+<title>Sandbox — Outils internes</title>
+<style>
+:root {
+    color-scheme: light;
+    --ink: #182028;
+    --muted: #68727d;
+    --paper: #f4f1e9;
+    --surface: #fffdf8;
+    --line: #dcd8ce;
+    --nav: #172028;
+    --nav-muted: #9da8b1;
+    --lime: #c9ff4a;
+    --blue: #5b71ff;
+    --orange: #ff8b56;
+    --danger: #c64136;
+    --shadow: 0 18px 50px rgba(35, 43, 51, 0.09);
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    min-width: 320px;
+    min-height: 100vh;
+    color: var(--ink);
+    background: var(--paper);
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+button, input { font: inherit; }
+button, a { -webkit-tap-highlight-color: transparent; }
+
+button:focus-visible,
+a:focus-visible,
+label:focus-within {
+    outline: 3px solid rgba(91, 113, 255, 0.35);
+    outline-offset: 2px;
+}
+
+.app-shell {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 250px minmax(0, 1fr);
+}
+
+.sidebar {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    padding: 28px 18px;
+    color: white;
+    background: var(--nav);
+    display: flex;
+    flex-direction: column;
+}
+
+.brand {
+    padding: 0 10px 28px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.brand-mark {
+    width: 42px;
+    height: 42px;
+    border-radius: 14px;
+    display: grid;
+    place-items: center;
+    color: var(--nav);
+    background: var(--lime);
+}
+
+.brand-mark svg { width: 27px; height: 27px; }
+
+.brand-name { font-size: 1.08rem; font-weight: 780; }
+.brand-caption { margin-top: 2px; color: var(--nav-muted); font-size: 0.78rem; }
+.nav { display: grid; gap: 8px; }
+
+.nav-button {
+    width: 100%;
+    padding: 13px 14px;
+    border: 0;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--nav-muted);
+    background: transparent;
+    font-weight: 680;
+    text-align: left;
+    cursor: pointer;
+    transition: color 160ms ease, background 160ms ease, transform 160ms ease;
+}
+
+.nav-button:hover {
+    color: white;
+    background: rgba(255, 255, 255, 0.06);
+    transform: translateX(2px);
+}
+
+.nav-button.active { color: var(--nav); background: var(--lime); }
+.nav-icon { width: 22px; height: 22px; flex: 0 0 auto; }
+
+.sidebar-note {
+    margin-top: auto;
+    padding: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    color: var(--nav-muted);
+    font-size: 0.82rem;
+    line-height: 1.5;
+}
+
+.sidebar-note strong {
+    display: block;
+    margin-bottom: 4px;
+    color: white;
+    font-size: 0.86rem;
+}
+
+.workspace { min-width: 0; padding: 44px clamp(24px, 5vw, 72px) 72px; }
+.view { display: none; max-width: 1180px; margin: 0 auto; }
+.view.active { display: block; animation: view-in 220ms ease both; }
+
+@keyframes view-in {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.eyebrow {
+    margin: 0 0 8px;
+    color: var(--muted);
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+}
+
+h1 {
+    max-width: 760px;
+    margin: 0;
+    font-size: clamp(2.25rem, 5vw, 4.8rem);
+    line-height: 0.97;
+    letter-spacing: -0.06em;
+}
+
+.lead {
+    max-width: 670px;
+    margin: 18px 0 0;
+    color: var(--muted);
+    font-size: 1rem;
+    line-height: 1.65;
+}
+
+.tool-grid {
+    margin-top: 34px;
+    display: grid;
+    grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.92fr);
+    gap: 22px;
+    align-items: start;
+}
+
+.panel {
+    min-width: 0;
+    border: 1px solid var(--line);
+    border-radius: 24px;
+    background: var(--surface);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+}
+
+.panel-heading {
+    padding: 22px 24px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.panel-heading h2,
+.panel-heading h3 { margin: 0; font-size: 1.02rem; letter-spacing: -0.02em; }
+
+.panel-count {
+    padding: 5px 9px;
+    border-radius: 999px;
+    color: var(--muted);
+    background: #efede6;
+    font-size: 0.76rem;
+    font-weight: 750;
+}
+
+.dropzone {
+    margin: 24px;
+    min-height: 250px;
+    padding: 30px;
+    border: 1.5px dashed #aaa9a2;
+    border-radius: 20px;
+    background: #f7f5ef;
+    display: grid;
+    place-items: center;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+}
+
+.dropzone:hover,
+.dropzone.is-over {
+    border-color: var(--blue);
+    background: #f0f1ff;
+    transform: translateY(-2px);
+}
+
+.dropzone.compact { min-height: 190px; }
+
+.drop-icon {
+    width: 58px;
+    height: 58px;
+    margin: 0 auto 18px;
+    border-radius: 18px;
+    display: grid;
+    place-items: center;
+    color: white;
+    background: var(--blue);
+    box-shadow: 0 10px 25px rgba(91, 113, 255, 0.25);
+}
+
+.drop-icon svg { width: 28px; height: 28px; }
+.dropzone h2, .dropzone h3 { margin: 0; font-size: 1.2rem; }
+.dropzone p { margin: 8px 0 0; color: var(--muted); line-height: 1.55; }
+.dropzone input { display: none; }
+
+.button {
+    min-height: 44px;
+    padding: 11px 16px;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: white;
+    background: var(--ink);
+    font-weight: 750;
+    text-decoration: none;
+    cursor: pointer;
+    transition: transform 150ms ease, opacity 150ms ease, box-shadow 150ms ease;
+}
+
+.button:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 18px rgba(24, 32, 40, 0.15);
+}
+
+.button:disabled { opacity: 0.42; cursor: not-allowed; }
+.button.blue { background: var(--blue); }
+.button.orange { color: #32170d; background: var(--orange); }
+.button.ghost { color: var(--ink); border-color: var(--line); background: transparent; }
+.button.danger { color: var(--danger); border-color: rgba(198, 65, 54, 0.28); background: transparent; }
+.button-row { display: flex; flex-wrap: wrap; gap: 10px; }
+
+.status-line {
+    min-height: 22px;
+    margin: 0 24px 22px;
+    color: var(--muted);
+    font-size: 0.88rem;
+}
+
+.status-line.success { color: #26743b; }
+.status-line.error { color: var(--danger); }
+
+.upload-options {
+    margin: 0 24px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.upload-option-copy {
+    display: grid;
+    gap: 2px;
+}
+
+.upload-option-copy small {
+    color: var(--muted);
+    font-size: 0.76rem;
+    font-weight: 500;
+}
+
+.upload-progress {
+    margin: 0 24px 18px;
+    display: grid;
+    gap: 7px;
+}
+
+.upload-progress[hidden] { display: none; }
+
+.upload-progress-heading {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    color: var(--muted);
+    font-size: 0.78rem;
+    font-weight: 650;
+}
+
+.upload-progress-track {
+    height: 9px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: #e5e2d9;
+}
+
+.upload-progress-bar {
+    width: 0;
+    height: 100%;
+    display: block;
+    border-radius: inherit;
+    background: var(--blue);
+    transition: width 120ms ease;
+}
+
+.file-list { padding: 8px; }
+
+.file-row {
+    padding: 14px 16px;
+    border-radius: 16px;
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr) auto;
+    gap: 13px;
+    align-items: center;
+}
+
+.file-row + .file-row { border-top: 1px solid #e8e4db; }
+
+.file-type {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    display: grid;
+    place-items: center;
+    color: #3349db;
+    background: #eaedff;
+    font-size: 0.68rem;
+    font-weight: 850;
+    text-transform: uppercase;
+}
+
+.file-name {
+    overflow: hidden;
+    font-weight: 720;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.file-meta { margin-top: 4px; color: var(--muted); font-size: 0.78rem; }
+.file-actions { display: flex; gap: 7px; }
+
+.icon-button {
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: 11px;
+    display: grid;
+    place-items: center;
+    color: var(--muted);
+    background: transparent;
+    cursor: pointer;
+}
+
+.icon-button:hover { color: var(--ink); background: #f0eee8; }
+.icon-button.danger:hover { color: var(--danger); border-color: rgba(198, 65, 54, 0.35); background: #fff1ef; }
+.icon-button svg { width: 17px; height: 17px; }
+
+.empty-state {
+    margin: 8px;
+    padding: 42px 20px;
+    border-radius: 16px;
+    color: var(--muted);
+    background: #f7f5ef;
+    text-align: center;
+}
+
+.image-info {
+    margin: 0 24px 24px;
+    padding: 15px 16px;
+    border-radius: 15px;
+    display: none;
+    background: #eff1ff;
+    font-size: 0.87rem;
+    line-height: 1.5;
+}
+
+.image-info.visible { display: block; }
+.warning { margin-top: 10px; color: #8a4817; }
+.preview-panel { padding-bottom: 24px; }
+
+.preview-stage {
+    margin: 24px;
+    padding: 26px;
+    border-radius: 20px;
+    background: #e9e7df;
+}
+
+.browser-preview {
+    border: 1px solid #cbc8bf;
+    border-radius: 13px;
+    overflow: hidden;
+    background: white;
+    box-shadow: 0 14px 30px rgba(37, 42, 47, 0.12);
+}
+
+.browser-bar {
+    height: 44px;
+    padding: 0 13px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #f7f7f7;
+}
+
+.browser-dot { width: 8px; height: 8px; border-radius: 50%; background: #d5d5d5; }
+
+.browser-tab {
+    min-width: 0;
+    margin-left: 7px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: white;
+    color: #505963;
+    font-size: 0.72rem;
+}
+
+.browser-tab img { width: 16px; height: 16px; object-fit: cover; background: #dad7cf; }
+
+.browser-page {
+    min-height: 98px;
+    padding: 22px;
+    display: grid;
+    place-items: center;
+    color: #9b9b96;
+    font-size: 0.8rem;
+}
+
+.device-previews {
+    margin-top: 22px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.preview-card {
+    min-width: 0;
+    min-height: 178px;
+    padding: 16px 10px;
+    border: 1px solid #d7d3ca;
+    border-radius: 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.68);
+    text-align: center;
+}
+
+.preview-card img {
+    object-fit: cover;
+    background: #dad7cf;
+    flex: 0 0 auto;
+}
+
+.favicon-preview:not([src]) { visibility: hidden; }
+.preview-card .square { width: 64px; height: 64px; border-radius: 0; }
+.preview-card .round { width: 72px; height: 72px; border-radius: 50%; }
+.preview-card .android { width: 96px; height: 96px; border-radius: 22%; }
+.preview-card .ios { width: 120px; height: 120px; border-radius: 22.37%; }
+.preview-card strong { display: block; margin-top: 10px; font-size: 0.78rem; }
+.preview-card span { color: var(--muted); font-size: 0.7rem; }
+.preview-actions { padding: 0 24px; display: flex; justify-content: flex-end; }
+.pdf-layout { margin-top: 34px; }
+
+.pdf-toolbar {
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.pdf-summary { color: var(--muted); font-size: 0.88rem; }
+
+.pdf-pages {
+    min-height: 250px;
+    padding: 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
+    gap: 14px;
+}
+
+.pdf-page {
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: 17px;
+    background: #f8f6f0;
+    cursor: grab;
+    transition: border-color 150ms ease, transform 150ms ease, opacity 150ms ease;
+}
+
+.pdf-page:hover { border-color: var(--orange); transform: translateY(-2px); }
+.pdf-page.dragging { opacity: 0.45; }
+
+.page-sheet {
+    aspect-ratio: 0.71;
+    padding: 14px;
+    border: 1px solid #dedbd3;
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    color: #7a7d80;
+    background: white;
+    box-shadow: 0 7px 15px rgba(40, 44, 48, 0.08);
+}
+
+.page-lines { display: grid; gap: 7px; }
+.page-lines i { height: 3px; border-radius: 2px; display: block; background: #e6e5e1; }
+.page-lines i:nth-child(2) { width: 84%; }
+.page-lines i:nth-child(3) { width: 92%; }
+.page-lines i:nth-child(4) { width: 65%; }
+.page-number { color: var(--orange); font-size: 1.5rem; font-weight: 850; }
+
+.page-name {
+    margin-top: 10px;
+    overflow: hidden;
+    font-size: 0.78rem;
+    font-weight: 720;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.page-source { margin-top: 3px; color: var(--muted); font-size: 0.7rem; }
+.page-controls { margin-top: 10px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+
+.page-controls button {
+    height: 31px;
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    color: var(--muted);
+    background: white;
+    cursor: pointer;
+}
+
+.page-controls button:hover:not(:disabled) { color: var(--ink); border-color: #aaa69e; }
+.page-controls button:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.pdf-empty {
+    grid-column: 1 / -1;
+    min-height: 210px;
+    border: 1.5px dashed #aaa9a2;
+    border-radius: 18px;
+    display: grid;
+    place-items: center;
+    color: var(--muted);
+    text-align: center;
+    cursor: pointer;
+}
+
+.code-grid {
+    margin-top: 34px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 22px;
+    align-items: start;
+}
+
+.generator-body {
+    padding: 24px;
+    display: grid;
+    gap: 18px;
+}
+
+.form-stack {
+    display: grid;
+    gap: 15px;
+}
+
+.field {
+    display: grid;
+    gap: 7px;
+    color: var(--muted);
+    font-size: 0.83rem;
+    font-weight: 720;
+}
+
+.field-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.field-row.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+.field input,
+.field textarea,
+.field select {
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    color: var(--ink);
+    background: white;
+    font-size: 0.92rem;
+    font-weight: 500;
+}
+
+.field textarea {
+    min-height: 94px;
+    resize: vertical;
+    line-height: 1.5;
+}
+
+.field input[type="color"] {
+    padding: 5px;
+    cursor: pointer;
+}
+
+.checkbox-field {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--ink);
+    font-size: 0.88rem;
+    font-weight: 650;
+    cursor: pointer;
+}
+
+.checkbox-field input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--blue);
+}
+
+.qr-logo-picker {
+    padding: 12px;
+    border: 1.5px dashed var(--line);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: white;
+    transition: border-color 160ms ease, background 160ms ease;
+}
+
+.qr-logo-picker.is-over {
+    border-color: var(--blue);
+    background: #f0f1ff;
+}
+
+.qr-logo-copy {
+    min-width: 0;
+    display: grid;
+    gap: 3px;
+}
+
+.qr-logo-copy strong { color: var(--ink); font-size: 0.88rem; }
+.qr-logo-copy span {
+    overflow: hidden;
+    color: var(--muted);
+    font-size: 0.78rem;
+    font-weight: 500;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.qr-logo-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.qr-logo-actions .button { padding: 9px 12px; }
+.qr-logo-actions .button[hidden] { display: none; }
+
+.generator-preview {
+    min-height: 310px;
+    padding: 24px;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    display: grid;
+    place-items: center;
+    overflow: auto;
+    background: #f7f5ef;
+}
+
+.generator-preview canvas {
+    max-width: 100%;
+    height: auto !important;
+    border: 12px solid white;
+    box-shadow: 0 10px 25px rgba(31, 38, 44, 0.1);
+}
+
+.qr-preview-shell {
+    width: 100%;
+    display: grid;
+    place-items: center;
+    gap: 12px;
+}
+
+.qr-resolution {
+    color: var(--muted);
+    font-size: 0.78rem;
+    font-weight: 650;
+}
+
+.generator-preview svg {
+    max-width: 100%;
+    height: auto;
+    background: white;
+    box-shadow: 0 10px 25px rgba(31, 38, 44, 0.1);
+}
+
+.code-status {
+    min-height: 21px;
+    color: var(--muted);
+    font-size: 0.8rem;
+}
+
+.code-status.error { color: var(--danger); }
+
+.generator-actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.advanced-options {
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.46);
+}
+
+.advanced-options summary {
+    cursor: pointer;
+    padding: 12px 14px;
+    font-weight: 750;
+}
+
+.advanced-options-body {
+    display: grid;
+    gap: 12px;
+    padding: 0 14px 14px;
+}
+
+.advanced-help {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.78rem;
+    line-height: 1.4;
+}
+
+.toast {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 20;
+    max-width: min(380px, calc(100vw - 48px));
+    padding: 13px 16px;
+    border-radius: 13px;
+    color: white;
+    background: var(--ink);
+    box-shadow: 0 14px 40px rgba(15, 20, 25, 0.28);
+    font-size: 0.88rem;
+    font-weight: 650;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(10px);
+    transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.toast.visible { opacity: 1; transform: translateY(0); }
+
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    background: rgba(15, 20, 25, 0.48);
+    opacity: 1;
+    transition: opacity 160ms ease;
+}
+
+.modal-backdrop[hidden] {
+    display: none;
+}
+
+.modal-dialog {
+    width: min(430px, 100%);
+    padding: 22px;
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    background: var(--surface);
+    box-shadow: var(--shadow);
+}
+
+.modal-dialog h2 {
+    margin: 0 0 8px;
+    font-size: 1.2rem;
+}
+
+.modal-dialog p {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.45;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+@media (max-width: 920px) {
+    .app-shell { display: block; }
+    .sidebar {
+        position: sticky;
+        z-index: 10;
+        height: auto;
+        padding: 12px 16px;
+        flex-direction: row;
+        align-items: center;
+        gap: 14px;
+        overflow-x: auto;
+    }
+    .brand { padding: 0; flex: 0 0 auto; }
+    .brand-mark { width: 38px; height: 38px; }
+    .brand-copy, .sidebar-note { display: none; }
+    .nav { display: flex; flex: 0 0 auto; }
+    .nav-button { width: auto; white-space: nowrap; }
+    .nav-button:hover { transform: none; }
+    .workspace { padding-top: 34px; }
+    .tool-grid, .code-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 600px) {
+    .sidebar {
+        position: fixed;
+        top: auto;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 20;
+        width: 100%;
+        height: auto;
+        align-items: stretch;
+        padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+        gap: 0;
+        overflow-x: visible;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 -12px 30px rgba(15, 20, 25, 0.18);
+    }
+    .brand { display: none; }
+    .nav {
+        width: 100%;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 4px;
+        flex: 1 1 auto;
+    }
+    .nav-button {
+        width: 100%;
+        min-width: 0;
+        padding: 8px 4px;
+        flex-direction: column;
+        justify-content: center;
+        gap: 4px;
+        font-size: 0.72rem;
+    }
+    .nav-icon { width: 18px; height: 18px; }
+    .workspace { padding: 28px 16px calc(112px + env(safe-area-inset-bottom)); }
+    h1 { font-size: 2.45rem; }
+    .panel-heading, .pdf-toolbar { align-items: flex-start; flex-direction: column; }
+    .dropzone, .preview-stage { margin: 16px; padding: 20px; }
+    .upload-options, .upload-progress, .status-line { margin-right: 16px; margin-left: 16px; }
+    .upload-options { align-items: stretch; flex-direction: column; }
+    .upload-options > .button { width: 100%; }
+    .file-row { grid-template-columns: 38px minmax(0, 1fr); }
+    .file-actions { grid-column: 1 / -1; justify-content: flex-end; }
+    .device-previews { grid-template-columns: 1fr; }
+    .preview-actions .button, .pdf-toolbar .button { width: 100%; }
+    .field-row, .field-row.three { grid-template-columns: 1fr; }
+    .generator-actions .button { width: 100%; }
+    .pdf-pages { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 14px; }
+    .toast { bottom: calc(92px + env(safe-area-inset-bottom)); }
+}
+</style>
+</head>
+<body>
+<div class="app-shell">
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="brand-mark">
+                <!-- Material Design Icons, icône Anvil, licence Apache 2.0 : pictogrammers.com -->
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9 5v5c4.03 2.47-.56 4.97-3 6v3h15v-3c-6.41-2.73-3.53-7 1-8V5H9M2 6c.81 2.13 2.42 3.5 5 4V6H2Z"/></svg>
+            </div>
+            <div class="brand-copy">
+                <div class="brand-name">Sandbox</div>
+                <div class="brand-caption">Outils internes</div>
+            </div>
+        </div>
+
+        <nav class="nav" aria-label="Outils">
+            <button class="nav-button active" type="button" data-view="files">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 16V3m0 0 4 4m-4-4L8 7"/><path d="M4 14v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5"/></svg>
+                Partager
+            </button>
+            <button class="nav-button" type="button" data-view="pdf">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v5h5M9 12h6m-6 4h6"/></svg>
+                PDF
+            </button>
+            <button class="nav-button" type="button" data-view="codes">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 7V3h4M17 3h4v4M21 17v4h-4M7 21H3v-4"/><path d="M8 7v10M12 7v10M17 7v10"/></svg>
+                Codes
+            </button>
+            <button class="nav-button" type="button" data-view="favicon">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="m7 15 3-3 2 2 2-2 3 3"/><circle cx="15.5" cy="8.5" r="1.5"/></svg>
+                Favicon
+            </button>
+        </nav>
+
+        <div class="sidebar-note">
+            <strong>Accès partagé</strong>
+            Les fichiers sont publics. Toute personne ayant accès à cette page peut les supprimer.
+        </div>
+    </aside>
+
+    <main class="workspace">
+        <section class="view active" id="view-files" aria-labelledby="files-title">
+            <p class="eyebrow">Partage express</p>
+            <h1 id="files-title">Un fichier. Un lien. C’est parti.</h1>
+            <p class="lead">Dépose un ou plusieurs fichiers, puis copie leur lien. La liste est commune à toute l’équipe.</p>
+
+            <div class="tool-grid">
+                <section class="panel">
+                    <div class="panel-heading">
+                        <h2>Envoyer des fichiers</h2>
+                    </div>
+                    <label class="dropzone" id="fileDropzone" for="fileInput">
+                        <div>
+                            <span class="drop-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 16V4m0 0 4 4m-4-4L8 8"/><path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg>
+                            </span>
+                            <h2>Dépose tes fichiers ici</h2>
+                            <p>ou clique pour les sélectionner</p>
+                        </div>
+                        <input id="fileInput" type="file" multiple />
+                    </label>
+                    <div class="upload-options">
+                        <label class="checkbox-field">
+                            <input id="compressUpload" type="checkbox" />
+                            <span class="upload-option-copy">
+                                Compresser avant l’envoi
+                                <small>Un fichier en .gz · plusieurs fichiers ou un dossier en .tgz</small>
+                            </span>
+                        </label>
+                        <label class="button ghost" for="folderInput">Choisir un dossier</label>
+                        <input id="folderInput" type="file" webkitdirectory multiple hidden />
+                    </div>
+                    <div class="upload-progress" id="uploadProgress" role="progressbar" aria-label="Progression de la préparation et de l’envoi" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" hidden>
+                        <div class="upload-progress-heading">
+                            <span id="uploadProgressLabel">Préparation…</span>
+                            <span id="uploadProgressValue">0 %</span>
+                        </div>
+                        <div class="upload-progress-track"><span class="upload-progress-bar" id="uploadProgressBar"></span></div>
+                    </div>
+                    <p class="status-line" id="uploadStatus" role="status" hidden></p>
+                </section>
+
+                <section class="panel">
+                    <div class="panel-heading">
+                        <h2>Fichiers disponibles</h2>
+                    </div>
+                    <div class="file-list" id="fileList"></div>
+                    <div class="empty-state" id="fileEmpty">Aucun fichier partagé pour le moment.</div>
+                </section>
+            </div>
+        </section>
+
+        <section class="view" id="view-favicon" aria-labelledby="favicon-title">
+            <p class="eyebrow">Fabrique à icônes</p>
+            <h1 id="favicon-title">Teste ton image partout.</h1>
+            <p class="lead">Vérifie son rendu en onglet, sur Android et sur iOS avant d’exporter un favicon prêt à utiliser.</p>
+
+            <div class="tool-grid">
+                <section class="panel">
+                    <div class="panel-heading">
+                        <h2>Image source</h2>
+                        <span class="panel-count">PNG · JPG · WebP · SVG</span>
+                    </div>
+                    <label class="dropzone compact" id="faviconDropzone" for="faviconInput">
+                        <div>
+                            <span class="drop-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 16V4m0 0 4 4m-4-4L8 8"/><path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg>
+                            </span>
+                            <h3>Choisis une image</h3>
+                            <p>Idéalement carrée ; au moins 512 × 512 px hors SVG</p>
+                        </div>
+                        <input id="faviconInput" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml,.svg" />
+                    </label>
+                    <div class="image-info" id="imageInfo" role="status"></div>
+                </section>
+
+                <section class="panel preview-panel">
+                    <div class="panel-heading">
+                        <h2>Aperçus</h2>
+                        <span class="panel-count">En situation</span>
+                    </div>
+                    <div class="preview-stage">
+                        <div class="browser-preview">
+                            <div class="browser-bar">
+                                <span class="browser-dot"></span><span class="browser-dot"></span><span class="browser-dot"></span>
+                                <div class="browser-tab"><img class="favicon-preview" alt="Aperçu du favicon à 16 pixels" /><span>Mon site</span></div>
+                            </div>
+                            <div class="browser-page">Aperçu dans un onglet de navigateur</div>
+                        </div>
+                        <div class="device-previews">
+                            <div class="preview-card">
+                                <img class="favicon-preview square" alt="Aperçu carré" />
+                                <strong>Carré</strong>
+                                <span>64 × 64 px</span>
+                            </div>
+                            <div class="preview-card">
+                                <img class="favicon-preview round" alt="Aperçu rond" />
+                                <strong>Rond</strong>
+                                <span>72 × 72 px</span>
+                            </div>
+                            <div class="preview-card">
+                                <img class="favicon-preview android" alt="Aperçu Android en carré arrondi" />
+                                <strong>Android</strong>
+                                <span>96 × 96 px</span>
+                            </div>
+                            <div class="preview-card">
+                                <img class="favicon-preview ios" alt="Aperçu iOS" />
+                                <strong>iOS</strong>
+                                <span>120 × 120 px</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="preview-actions">
+                        <button class="button blue" id="downloadFavicon" type="button" disabled>Télécharger favicon.ico</button>
+                    </div>
+                </section>
+            </div>
+        </section>
+
+        <section class="view" id="view-codes" aria-labelledby="codes-title">
+            <p class="eyebrow">Générateur de codes</p>
+            <h1 id="codes-title">Crée. Scanne. Télécharge.</h1>
+            <p class="lead">Transforme un lien ou un texte en QR code, ou génère un code-barres dans le format adapté.</p>
+
+            <div class="code-grid">
+                <section class="panel">
+                    <div class="panel-heading">
+                        <h2>QR code</h2>
+                    </div>
+                    <div class="generator-body">
+                        <div class="form-stack">
+                            <label class="field">
+                                Texte ou URL
+                                <textarea id="qrValue" rows="3">https://acme.example</textarea>
+                            </label>
+                            <div class="field-row three">
+                                <label class="field">
+                                    Résolution export
+                                    <select id="qrSize">
+                                        <option value="256">256 × 256 px</option>
+                                        <option value="512" selected>512 × 512 px</option>
+                                        <option value="1024">1024 × 1024 px</option>
+                                    </select>
+                                </label>
+                                <label class="field">
+                                    Couleur
+                                    <input id="qrColor" type="color" value="#182028" />
+                                </label>
+                                <label class="field">
+                                    Format
+                                    <select id="qrExportFormat">
+                                        <option value="png" selected>PNG</option>
+                                        <option value="jpeg">JPG</option>
+                                        <option value="svg">SVG</option>
+                                        <option value="pdf">PDF A4</option>
+                                    </select>
+                                </label>
+                            </div>
+                            <div class="qr-logo-picker" id="qrLogoDropzone">
+                                <div class="qr-logo-copy">
+                                    <strong>Image au centre (optionnelle)</strong>
+                                    <span id="qrLogoName">Dépose une image ici · PNG, JPG, WebP ou SVG</span>
+                                </div>
+                                <div class="qr-logo-actions">
+                                    <label class="button ghost" for="qrLogoInput">Choisir</label>
+                                    <input id="qrLogoInput" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml,.svg" hidden />
+                                    <button class="button danger" id="removeQrLogo" type="button" hidden>Retirer</button>
+                                </div>
+                            </div>
+                            <details class="advanced-options">
+                                <summary>Options avancées d’impression</summary>
+                                <div class="advanced-options-body">
+                                    <label class="field">
+                                        Taille du QR sur A4 (cm)
+                                        <input id="qrPrintSizeCm" type="number" min="1" max="20" step="0.1" value="4" />
+                                    </label>
+                                    <p class="advanced-help">En PDF, le QR est répété autant de fois que possible sur une feuille A4.</p>
+                                </div>
+                            </details>
+                        </div>
+                        <div class="generator-preview">
+                            <div class="qr-preview-shell">
+                                <canvas id="qrPreview" width="512" height="512" aria-label="Aperçu du QR code"></canvas>
+                                <span class="qr-resolution" id="qrResolution">Aperçu ajusté · export 512 × 512 px</span>
+                            </div>
+                        </div>
+                        <div class="code-status" id="qrStatus" role="status"></div>
+                        <div class="generator-actions">
+                            <button class="button blue" id="downloadQr" type="button" disabled>Télécharger le PNG</button>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="panel">
+                    <div class="panel-heading">
+                        <h2>Code-barres</h2>
+                    </div>
+                    <div class="generator-body">
+                        <div class="form-stack">
+                            <label class="field">
+                                Valeur
+                                <input id="barcodeValue" type="text" value="ACME-2026" autocomplete="off" />
+                            </label>
+                            <div class="field-row three">
+                                <label class="field">
+                                    Format
+                                    <select id="barcodeFormat">
+                                        <option value="CODE128">CODE128</option>
+                                        <option value="EAN13">EAN-13</option>
+                                        <option value="UPC">UPC</option>
+                                        <option value="CODE39">CODE39</option>
+                                    </select>
+                                </label>
+                                <label class="field">
+                                    Hauteur des barres
+                                    <select id="barcodeHeight">
+                                        <option value="60">60 px</option>
+                                        <option value="90" selected>90 px</option>
+                                        <option value="120">120 px</option>
+                                    </select>
+                                </label>
+                                <label class="field">
+                                    Format export
+                                    <select id="barcodeExportFormat">
+                                        <option value="png" selected>PNG</option>
+                                        <option value="jpeg">JPG</option>
+                                        <option value="svg">SVG</option>
+                                        <option value="pdf">PDF A4</option>
+                                    </select>
+                                </label>
+                            </div>
+                            <label class="checkbox-field">
+                                <input id="barcodeShowValue" type="checkbox" checked />
+                                Afficher la valeur sous les barres
+                            </label>
+                            <details class="advanced-options">
+                                <summary>Options avancées d’impression</summary>
+                                <div class="advanced-options-body">
+                                    <div class="field-row">
+                                        <label class="field">
+                                            Largeur du code sur A4 (cm)
+                                            <input id="barcodePrintWidthCm" type="number" min="2" max="20" step="0.1" value="6" />
+                                        </label>
+                                        <label class="field">
+                                            Hauteur du code sur A4 (cm)
+                                            <input id="barcodePrintHeightCm" type="number" min="1" max="12" step="0.1" value="3" />
+                                        </label>
+                                    </div>
+                                    <p class="advanced-help">En PDF, le code-barres est répété autant de fois que possible sur une feuille A4.</p>
+                                </div>
+                            </details>
+                        </div>
+                        <div class="generator-preview">
+                            <svg id="barcodePreview" aria-label="Aperçu du code-barres"></svg>
+                        </div>
+                        <div class="code-status" id="barcodeStatus" role="status"></div>
+                        <div class="generator-actions">
+                            <button class="button orange" id="downloadBarcode" type="button" disabled>Télécharger le SVG</button>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </section>
+
+        <section class="view" id="view-pdf" aria-labelledby="pdf-title">
+            <p class="eyebrow">Sandbox PDF</p>
+            <h1 id="pdf-title">Assemble. Range. Allège.</h1>
+            <p class="lead">Ajoute plusieurs PDF, déplace leurs pages dans l’ordre voulu, supprime le superflu et exporte un seul document.</p>
+
+            <section class="panel pdf-layout">
+                <div class="pdf-toolbar">
+                    <div>
+                        <strong>Pages du document final</strong>
+                        <div class="pdf-summary" id="pdfSummary">Aucun PDF ajouté</div>
+                    </div>
+                    <div class="button-row">
+                        <label class="button ghost" for="pdfInput">Ajouter des PDF</label>
+                        <input id="pdfInput" type="file" accept="application/pdf,.pdf" multiple hidden />
+                        <button class="button danger" id="clearPdf" type="button" disabled>Tout retirer</button>
+                        <button class="button orange" id="exportPdf" type="button" disabled>Exporter le PDF</button>
+                    </div>
+                </div>
+                <div class="pdf-pages" id="pdfPages">
+                    <label class="pdf-empty" for="pdfInput">
+                        <span><strong>Dépose ou sélectionne tes PDF</strong><br />Les pages apparaîtront ici.</span>
+                    </label>
+                </div>
+            </section>
+        </section>
+    </main>
+</div>
+
+<div class="modal-backdrop" id="deleteModal" hidden>
+    <section class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="deleteModalTitle" aria-describedby="deleteModalText">
+        <h2 id="deleteModalTitle">Supprimer le fichier ?</h2>
+        <p id="deleteModalText">Cette action est définitive.</p>
+        <div class="modal-actions">
+            <button class="button" id="cancelDelete" type="button">Annuler</button>
+            <button class="button danger" id="confirmDelete" type="button">Supprimer</button>
+        </div>
+    </section>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="vendor/qrcode-generator.js"></script>
+<script src="vendor/JsBarcode.all.min.js"></script>
+<script src="vendor/pdf-lib.min.js"></script>
+<script>
+const toast = document.getElementById("toast");
+const deleteModal = document.getElementById("deleteModal");
+const deleteModalText = document.getElementById("deleteModalText");
+const cancelDelete = document.getElementById("cancelDelete");
+const confirmDelete = document.getElementById("confirmDelete");
+let toastTimer = null;
+let pendingDeleteConfirmation = null;
+
+const showToast = (message) => {
+    toast.textContent = message;
+    toast.classList.add("visible");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove("visible"), 2600);
+};
+
+const closeDeleteModal = (confirmed) => {
+    if (!pendingDeleteConfirmation) return;
+    deleteModal.hidden = true;
+    const resolve = pendingDeleteConfirmation;
+    pendingDeleteConfirmation = null;
+    resolve(confirmed);
+};
+
+const confirmFileDeletion = (fileName) => new Promise((resolve) => {
+    pendingDeleteConfirmation = resolve;
+    deleteModalText.textContent = `Supprimer définitivement « ${fileName} » ?`;
+    deleteModal.hidden = false;
+    confirmDelete.focus();
+});
+
+cancelDelete.addEventListener("click", () => closeDeleteModal(false));
+confirmDelete.addEventListener("click", () => closeDeleteModal(true));
+deleteModal.addEventListener("click", (event) => {
+    if (event.target === deleteModal) closeDeleteModal(false);
+});
+document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !deleteModal.hidden) closeDeleteModal(false);
+});
+
+document.querySelectorAll(".nav-button").forEach((button) => {
+    button.addEventListener("click", () => {
+        document.querySelectorAll(".nav-button").forEach((item) => item.classList.toggle("active", item === button));
+        document.querySelectorAll(".view").forEach((view) => view.classList.toggle("active", view.id === `view-${button.dataset.view}`));
+    });
+});
+
+const formatSize = (bytes) => {
+    if (bytes < 1024) return `${bytes} o`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} Ko`;
+    if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
+    return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} Go`;
+};
+
+const fileInput = document.getElementById("fileInput");
+const folderInput = document.getElementById("folderInput");
+const compressUpload = document.getElementById("compressUpload");
+const fileDropzone = document.getElementById("fileDropzone");
+const fileList = document.getElementById("fileList");
+const fileEmpty = document.getElementById("fileEmpty");
+const uploadStatus = document.getElementById("uploadStatus");
+const uploadProgress = document.getElementById("uploadProgress");
+const uploadProgressLabel = document.getElementById("uploadProgressLabel");
+const uploadProgressValue = document.getElementById("uploadProgressValue");
+const uploadProgressBar = document.getElementById("uploadProgressBar");
+const maxBrowserCompressionBytes = 512 * 1024 * 1024;
+let sharedFiles = [];
+
+const fileExtension = (name) => {
+    const extension = name.includes(".") ? name.split(".").pop() : "FILE";
+    return extension.slice(0, 4);
+};
+
+const createIconButton = (label, icon, className = "") => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `icon-button ${className}`;
+    button.setAttribute("aria-label", label);
+    button.title = label;
+    button.innerHTML = icon;
+    return button;
+};
+
+const renderSharedFiles = () => {
+    fileList.replaceChildren();
+    fileEmpty.hidden = sharedFiles.length > 0;
+    sharedFiles.forEach((file) => {
+        const row = document.createElement("article");
+        row.className = "file-row";
+
+        const type = document.createElement("div");
+        type.className = "file-type";
+        type.textContent = fileExtension(file.name);
+
+        const details = document.createElement("div");
+        const name = document.createElement("div");
+        name.className = "file-name";
+        name.textContent = file.name;
+        name.title = file.name;
+        const meta = document.createElement("div");
+        meta.className = "file-meta";
+        meta.textContent = `${formatSize(file.size)} · ${new Date(file.updatedAt).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}`;
+        details.append(name, meta);
+
+        const actions = document.createElement("div");
+        actions.className = "file-actions";
+        const open = document.createElement("a");
+        open.className = "icon-button";
+        open.href = file.url;
+        open.target = "_blank";
+        open.rel = "noopener";
+        open.title = "Télécharger";
+        open.setAttribute("aria-label", `Télécharger ${file.name}`);
+        open.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3"/><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg>';
+
+        const copy = createIconButton(`Copier le lien de ${file.name}`, '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>');
+        copy.addEventListener("click", async () => {
+            const absoluteUrl = new URL(file.url, window.location.href).href;
+            try {
+                await navigator.clipboard.writeText(absoluteUrl);
+                showToast("Lien copié");
+            } catch {
+                window.prompt("Copie ce lien :", absoluteUrl);
+            }
+        });
+
+        const compressed = document.createElement("a");
+        const isGzipArchive = /\.(?:gz|tgz)$/i.test(file.name);
+        compressed.className = "icon-button";
+        compressed.href = isGzipArchive ? file.url : `api/files/${encodeURIComponent(file.name)}/compressed`;
+        compressed.title = isGzipArchive ? "Télécharger l’archive compressée" : "Compresser sur le serveur et télécharger en GZIP";
+        compressed.setAttribute("aria-label", isGzipArchive
+            ? `Télécharger l’archive compressée ${file.name}`
+            : `Compresser ${file.name} sur le serveur et le télécharger en GZIP`);
+        compressed.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M5 19h14"/><path d="M17 3h2v4h-2m0 0h2v4h-2"/></svg>';
+
+        const remove = createIconButton(`Supprimer ${file.name}`, '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2m-9 0 1 15h8l1-15M10 10v7m4-7v7"/></svg>', "danger");
+        remove.addEventListener("click", async () => {
+            if (!await confirmFileDeletion(file.name)) return;
+            const response = await fetch(`api/files/${encodeURIComponent(file.name)}`, { method: "DELETE" });
+            if (!response.ok) {
+                showToast("La suppression a échoué");
+                return;
+            }
+            sharedFiles = sharedFiles.filter((item) => item.name !== file.name);
+            renderSharedFiles();
+            showToast("Fichier supprimé");
+        });
+
+        actions.append(open, copy, compressed, remove);
+        row.append(type, details, actions);
+        fileList.append(row);
+    });
+};
+
+const loadSharedFiles = async () => {
+    try {
+        const response = await fetch("api/files");
+        if (!response.ok) throw new Error();
+        const data = await response.json();
+        sharedFiles = data.files;
+        renderSharedFiles();
+    } catch {
+        uploadStatus.hidden = false;
+        uploadStatus.textContent = "Impossible de charger les fichiers. Vérifie que le serveur est lancé.";
+        uploadStatus.className = "status-line error";
+    }
+};
+
+const setUploadProgress = (percent, label) => {
+    const value = Math.max(0, Math.min(100, Math.round(percent)));
+    uploadProgress.hidden = false;
+    uploadProgressLabel.textContent = label;
+    uploadProgressValue.textContent = `${value} %`;
+    uploadProgressBar.style.width = `${value}%`;
+    uploadProgress.setAttribute("aria-valuenow", String(value));
+};
+
+const uploadBlob = (blob, fileName, onProgress) => new Promise((resolve, reject) => {
+    const request = new XMLHttpRequest();
+    request.open("POST", `upload?name=${encodeURIComponent(fileName)}`);
+    request.setRequestHeader("Content-Type", blob.type || "application/octet-stream");
+    request.upload.addEventListener("progress", (event) => {
+        if (event.lengthComputable) onProgress(event.loaded / event.total);
+    });
+    request.addEventListener("load", () => {
+        if (request.status < 200 || request.status >= 300) {
+            const error = new Error(request.status === 413 ? "UPLOAD_TOO_LARGE" : "UPLOAD_FAILED");
+            error.status = request.status;
+            if (request.status === 413) {
+                try {
+                    error.maxUploadBytes = JSON.parse(request.responseText).maxUploadBytes;
+                } catch {
+                    error.maxUploadBytes = null;
+                }
+            }
+            reject(error);
+            return;
+        }
+
+        try {
+            resolve(JSON.parse(request.responseText));
+        } catch {
+            reject(new Error("INVALID_RESPONSE"));
+        }
+    });
+    request.addEventListener("error", () => reject(new Error("UPLOAD_FAILED")));
+    request.send(blob);
+});
+
+const writeTarText = (header, offset, length, value) => {
+    const bytes = new TextEncoder().encode(value);
+    header.set(bytes.subarray(0, length), offset);
+};
+
+const writeTarNumber = (header, offset, length, value) => {
+    writeTarText(header, offset, length, Math.floor(value).toString(8).padStart(length - 1, "0"));
+};
+
+const fitTarText = (value, maxBytes) => {
+    const encoder = new TextEncoder();
+    let result = "";
+    for (const character of value) {
+        if (encoder.encode(result + character).length > maxBytes) break;
+        result += character;
+    }
+    return result;
+};
+
+const splitTarPath = (value) => {
+    const path = value
+        .replaceAll("\\", "/")
+        .split("/")
+        .filter((segment) => segment && segment !== "." && segment !== "..")
+        .join("/") || "fichier.bin";
+    const encoder = new TextEncoder();
+    if (encoder.encode(path).length <= 100) return { name: path, prefix: "" };
+
+    const parts = path.split("/");
+    for (let index = parts.length - 1; index > 0; index -= 1) {
+        const prefix = parts.slice(0, index).join("/");
+        const name = parts.slice(index).join("/");
+        if (encoder.encode(prefix).length <= 155 && encoder.encode(name).length <= 100) {
+            return { name, prefix };
+        }
+    }
+
+    return { name: fitTarText(parts.at(-1), 100), prefix: "" };
+};
+
+const createTarHeader = (file, archivePath) => {
+    const header = new Uint8Array(512);
+    const { name, prefix } = splitTarPath(archivePath);
+    writeTarText(header, 0, 100, name);
+    writeTarText(header, 100, 8, "0000644\0");
+    writeTarText(header, 108, 8, "0000000\0");
+    writeTarText(header, 116, 8, "0000000\0");
+    writeTarNumber(header, 124, 12, file.size);
+    writeTarNumber(header, 136, 12, Math.floor((file.lastModified || Date.now()) / 1000));
+    header.fill(32, 148, 156);
+    header[156] = "0".charCodeAt(0);
+    writeTarText(header, 257, 6, "ustar\0");
+    writeTarText(header, 263, 2, "00");
+    writeTarText(header, 265, 32, "browser");
+    writeTarText(header, 297, 32, "browser");
+    writeTarText(header, 345, 155, prefix);
+
+    const checksum = header.reduce((sum, byte) => sum + byte, 0);
+    writeTarText(header, 148, 8, `${checksum.toString(8).padStart(6, "0")}\0 `);
+    return header;
+};
+
+const createTarBlob = (files) => {
+    const parts = [];
+    files.forEach((file, index) => {
+        const archivePath = file.webkitRelativePath || file.name || `fichier-${index + 1}`;
+        parts.push(createTarHeader(file, archivePath), file);
+        const paddingLength = (512 - (file.size % 512)) % 512;
+        if (paddingLength) parts.push(new Uint8Array(paddingLength));
+    });
+    parts.push(new Uint8Array(1024));
+    return new Blob(parts, { type: "application/x-tar" });
+};
+
+const gzipBlob = async (source, onProgress) => {
+    if (typeof CompressionStream === "undefined") throw new Error("COMPRESSION_UNSUPPORTED");
+
+    let processed = 0;
+    const total = Math.max(1, source.size);
+    const progressStream = new TransformStream({
+        transform(chunk, controller) {
+            processed += chunk.byteLength;
+            onProgress(processed / total);
+            controller.enqueue(chunk);
+        },
+    });
+    const compressedStream = source.stream()
+        .pipeThrough(progressStream)
+        .pipeThrough(new CompressionStream("gzip"));
+    const compressed = await new Response(compressedStream).blob();
+    onProgress(1);
+    return new Blob([compressed], { type: "application/gzip" });
+};
+
+const safeArchiveName = (value) => (value || "dossier")
+    .replace(/[^a-zA-Z0-9._-]/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^\.+|\.+$/g, "") || "dossier";
+
+const compressFiles = async (files, isFolder, onProgress) => {
+    if (files.length === 1 && !isFolder) {
+        return {
+            blob: await gzipBlob(files[0], onProgress),
+            name: `${files[0].name}.gz`,
+        };
+    }
+
+    const tar = createTarBlob(files);
+    const folderName = files[0]?.webkitRelativePath?.split("/")[0];
+    return {
+        blob: await gzipBlob(tar, onProgress),
+        name: `${safeArchiveName(isFolder ? folderName : "fichiers")}.tgz`,
+    };
+};
+
+const uploadFiles = async (files, { isFolder = false } = {}) => {
+    const pending = Array.from(files);
+    if (!pending.length) return;
+
+    const shouldCompress = compressUpload.checked || isFolder;
+    const totalInputSize = pending.reduce((sum, file) => sum + file.size, 0);
+    const results = [];
+    uploadStatus.className = "status-line";
+    setUploadProgress(0, shouldCompress ? "Préparation de la compression…" : "Préparation de l’envoi…");
+
+    try {
+        if (shouldCompress && totalInputSize > maxBrowserCompressionBytes) {
+            throw new Error("COMPRESSION_TOO_LARGE");
+        }
+
+        if (shouldCompress) {
+            uploadStatus.hidden = false;
+            uploadStatus.textContent = isFolder
+                ? "Le dossier est regroupé et compressé en .tgz dans le navigateur…"
+                : "Compression dans le navigateur…";
+            const prepared = await compressFiles(pending, isFolder, (progress) => {
+                setUploadProgress(progress * 55, "Compression dans le navigateur…");
+            });
+            const result = await uploadBlob(prepared.blob, prepared.name, (progress) => {
+                setUploadProgress(55 + progress * 45, "Envoi du fichier compressé…");
+            });
+            results.push(result);
+        } else {
+            uploadStatus.hidden = false;
+            uploadStatus.textContent = `Envoi de ${pending.length} fichier${pending.length > 1 ? "s" : ""}…`;
+            const totalSize = Math.max(1, totalInputSize);
+            let completedSize = 0;
+            for (const file of pending) {
+                const result = await uploadBlob(file, file.name, (progress) => {
+                    setUploadProgress(((completedSize + file.size * progress) / totalSize) * 100, `Envoi de « ${file.name} »…`);
+                });
+                results.push(result);
+                completedSize += file.size;
+            }
+        }
+
+        setUploadProgress(100, "Terminé");
+        const renamed = results.filter((result) => result.renamed);
+        uploadStatus.hidden = false;
+        uploadStatus.textContent = renamed.length
+            ? `Envoi terminé. Nom déjà utilisé : enregistré sous « ${renamed[0].fileName} ».${renamed.length > 1 ? ` ${renamed.length} fichiers ont été renommés.` : ""}`
+            : `${results.length} fichier${results.length > 1 ? "s envoyés" : " envoyé"} avec succès.`;
+        uploadStatus.className = "status-line success";
+        await loadSharedFiles();
+    } catch (error) {
+        if (results.length) await loadSharedFiles();
+        const failureReason = error instanceof Error && error.message === "COMPRESSION_UNSUPPORTED"
+            ? "La compression dans le navigateur n’est pas prise en charge ici. Utilise un navigateur récent ou désactive l’option."
+            : error instanceof Error && error.message === "COMPRESSION_TOO_LARGE"
+                ? "La sélection dépasse 512 Mo. Envoie-la sans compression ou crée l’archive hors du navigateur."
+                : error instanceof Error && error.message === "UPLOAD_TOO_LARGE"
+                    ? `Le serveur refuse l’envoi avec un statut 413${error.maxUploadBytes ? ` (limite ${formatSize(error.maxUploadBytes)})` : " (limite nginx/proxy)"}. Recharge la page puis réessaie.`
+                    : "La préparation ou l’envoi a échoué.";
+        uploadStatus.hidden = false;
+        uploadStatus.textContent = results.length
+            ? `${results.length} fichier${results.length > 1 ? "s ont" : " a"} été envoyé${results.length > 1 ? "s" : ""}, puis l’opération a échoué. ${failureReason}`
+            : failureReason;
+        uploadStatus.className = "status-line error";
+        setUploadProgress(0, "Échec");
+    }
+};
+
+fileInput.addEventListener("change", async () => {
+    await uploadFiles(fileInput.files);
+    fileInput.value = "";
+});
+
+folderInput.addEventListener("change", async () => {
+    await uploadFiles(folderInput.files, { isFolder: true });
+    folderInput.value = "";
+});
+
+["dragenter", "dragover"].forEach((eventName) => {
+    fileDropzone.addEventListener(eventName, (event) => {
+        event.preventDefault();
+        fileDropzone.classList.add("is-over");
+    });
+});
+
+["dragleave", "drop"].forEach((eventName) => {
+    fileDropzone.addEventListener(eventName, (event) => {
+        event.preventDefault();
+        fileDropzone.classList.remove("is-over");
+    });
+});
+
+fileDropzone.addEventListener("drop", (event) => uploadFiles(event.dataTransfer.files));
+
+const faviconInput = document.getElementById("faviconInput");
+const faviconDropzone = document.getElementById("faviconDropzone");
+const imageInfo = document.getElementById("imageInfo");
+const downloadFavicon = document.getElementById("downloadFavicon");
+let faviconImage = null;
+let faviconUrl = "";
+let faviconDimensions = { width: 0, height: 0 };
+
+const getSvgDimensions = async (file) => {
+    try {
+        const svgDocument = new DOMParser().parseFromString(await file.text(), "image/svg+xml");
+        const svg = svgDocument.documentElement;
+        const viewBox = svg.getAttribute("viewBox")?.trim().split(/[ ,]+/).map(Number);
+
+        if (viewBox?.length === 4 && viewBox.every(Number.isFinite) && viewBox[2] > 0 && viewBox[3] > 0) {
+            return { width: viewBox[2], height: viewBox[3] };
+        }
+
+        const width = Number.parseFloat(svg.getAttribute("width"));
+        const height = Number.parseFloat(svg.getAttribute("height"));
+        return width > 0 && height > 0 ? { width, height } : null;
+    } catch {
+        return null;
+    }
+};
+
+const setFaviconImage = async (file) => {
+    const isSvg = Boolean(file && (file.type === "image/svg+xml" || file.name.toLowerCase().endsWith(".svg")));
+    if (!file || (!file.type.startsWith("image/") && !isSvg)) {
+        showToast("Choisis un fichier image");
+        return;
+    }
+
+    const svgDimensions = isSvg ? await getSvgDimensions(file) : null;
+    const image = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    image.onload = () => {
+        if (faviconUrl) URL.revokeObjectURL(faviconUrl);
+        faviconUrl = objectUrl;
+        faviconImage = image;
+        faviconDimensions = svgDimensions || { width: image.naturalWidth, height: image.naturalHeight };
+        document.querySelectorAll(".favicon-preview").forEach((preview) => { preview.src = objectUrl; });
+
+        const warnings = [];
+        if (faviconDimensions.width !== faviconDimensions.height) warnings.push("L’image n’est pas carrée : l’export utilisera un recadrage centré.");
+        if (!isSvg && Math.min(faviconDimensions.width, faviconDimensions.height) < 512) warnings.push("La résolution est inférieure à 512 px : le rendu d’icône d’application peut manquer de netteté.");
+        imageInfo.replaceChildren();
+        const dimensions = document.createElement("strong");
+        dimensions.textContent = isSvg
+            ? `${file.name} · SVG vectoriel · ${faviconDimensions.width} × ${faviconDimensions.height}`
+            : `${file.name} · ${faviconDimensions.width} × ${faviconDimensions.height} px`;
+        imageInfo.append(dimensions);
+        warnings.forEach((warning) => {
+            const line = document.createElement("div");
+            line.className = "warning";
+            line.textContent = `⚠ ${warning}`;
+            imageInfo.append(line);
+        });
+        if (!warnings.length) imageInfo.append(document.createTextNode(" — Format idéal."));
+        imageInfo.classList.add("visible");
+        downloadFavicon.disabled = false;
+    };
+    image.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        showToast("Cette image ne peut pas être lue");
+    };
+    image.src = objectUrl;
+};
+
+faviconInput.addEventListener("change", () => {
+    setFaviconImage(faviconInput.files[0]);
+    faviconInput.value = "";
+});
+
+["dragenter", "dragover"].forEach((eventName) => {
+    faviconDropzone.addEventListener(eventName, (event) => {
+        event.preventDefault();
+        faviconDropzone.classList.add("is-over");
+    });
+});
+
+["dragleave", "drop"].forEach((eventName) => {
+    faviconDropzone.addEventListener(eventName, (event) => {
+        event.preventDefault();
+        faviconDropzone.classList.remove("is-over");
+    });
+});
+
+faviconDropzone.addEventListener("drop", (event) => setFaviconImage(event.dataTransfer.files[0]));
+
+const drawSquareIcon = (size) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = size;
+    canvas.height = size;
+    const context = canvas.getContext("2d");
+    const sourceRatio = faviconDimensions.width / faviconDimensions.height;
+    const drawWidth = sourceRatio >= 1 ? size * sourceRatio : size;
+    const drawHeight = sourceRatio >= 1 ? size : size / sourceRatio;
+    context.drawImage(faviconImage, (size - drawWidth) / 2, (size - drawHeight) / 2, drawWidth, drawHeight);
+    return canvas;
+};
+
+downloadFavicon.addEventListener("click", async () => {
+    if (!faviconImage) return;
+    const sizes = [16, 32, 48];
+    const images = await Promise.all(sizes.map(async (size) => {
+        const canvas = drawSquareIcon(size);
+        const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+        return new Uint8Array(await blob.arrayBuffer());
+    }));
+    const directoryLength = 6 + images.length * 16;
+    const icoBytes = new Uint8Array(directoryLength + images.reduce((total, image) => total + image.length, 0));
+    const header = new DataView(icoBytes.buffer);
+    header.setUint16(0, 0, true);
+    header.setUint16(2, 1, true);
+    header.setUint16(4, images.length, true);
+
+    let imageOffset = directoryLength;
+    images.forEach((image, index) => {
+        const entryOffset = 6 + index * 16;
+        icoBytes[entryOffset] = sizes[index];
+        icoBytes[entryOffset + 1] = sizes[index];
+        header.setUint16(entryOffset + 4, 1, true);
+        header.setUint16(entryOffset + 6, 32, true);
+        header.setUint32(entryOffset + 8, image.length, true);
+        header.setUint32(entryOffset + 12, imageOffset, true);
+        icoBytes.set(image, imageOffset);
+        imageOffset += image.length;
+    });
+
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(new Blob([icoBytes], { type: "image/x-icon" }));
+    link.download = "favicon.ico";
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+    showToast("Favicon téléchargé");
+});
+
+const pdfInput = document.getElementById("pdfInput");
+const pdfPages = document.getElementById("pdfPages");
+const pdfSummary = document.getElementById("pdfSummary");
+const clearPdf = document.getElementById("clearPdf");
+const exportPdf = document.getElementById("exportPdf");
+const pdfSources = new Map();
+let pageItems = [];
+let pdfId = 0;
+let draggedPageId = null;
+
+const renderPdfPages = () => {
+    pdfPages.replaceChildren();
+    const sourceCount = new Set(pageItems.map((page) => page.sourceId)).size;
+    pdfSummary.textContent = pageItems.length
+        ? `${pageItems.length} page${pageItems.length > 1 ? "s" : ""} · ${sourceCount} document${sourceCount > 1 ? "s" : ""}`
+        : "Aucun PDF ajouté";
+    clearPdf.disabled = pageItems.length === 0;
+    exportPdf.disabled = pageItems.length === 0;
+
+    if (!pageItems.length) {
+        const empty = document.createElement("label");
+        empty.className = "pdf-empty";
+        empty.htmlFor = "pdfInput";
+        empty.innerHTML = "<span><strong>Dépose ou sélectionne tes PDF</strong><br />Les pages apparaîtront ici.</span>";
+        pdfPages.append(empty);
+        return;
+    }
+
+    pageItems.forEach((page, index) => {
+        const source = pdfSources.get(page.sourceId);
+        const card = document.createElement("article");
+        card.className = "pdf-page";
+        card.draggable = true;
+        card.dataset.pageId = page.id;
+
+        const sheet = document.createElement("div");
+        sheet.className = "page-sheet";
+        sheet.innerHTML = '<div class="page-lines"><i></i><i></i><i></i><i></i></div>';
+        const number = document.createElement("span");
+        number.className = "page-number";
+        number.textContent = page.pageIndex + 1;
+        sheet.append(number);
+
+        const name = document.createElement("div");
+        name.className = "page-name";
+        name.textContent = source.name;
+        name.title = source.name;
+        const order = document.createElement("div");
+        order.className = "page-source";
+        order.textContent = `Position ${index + 1}`;
+
+        const controls = document.createElement("div");
+        controls.className = "page-controls";
+        const previous = document.createElement("button");
+        previous.type = "button";
+        previous.textContent = "←";
+        previous.title = "Déplacer avant";
+        previous.disabled = index === 0;
+        previous.addEventListener("click", () => movePdfPage(index, index - 1));
+        const next = document.createElement("button");
+        next.type = "button";
+        next.textContent = "→";
+        next.title = "Déplacer après";
+        next.disabled = index === pageItems.length - 1;
+        next.addEventListener("click", () => movePdfPage(index, index + 1));
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.textContent = "×";
+        remove.title = "Supprimer cette page";
+        remove.addEventListener("click", () => {
+            pageItems.splice(index, 1);
+            renderPdfPages();
+        });
+        controls.append(previous, next, remove);
+        card.append(sheet, name, order, controls);
+
+        card.addEventListener("dragstart", () => {
+            draggedPageId = page.id;
+            card.classList.add("dragging");
+        });
+        card.addEventListener("dragend", () => {
+            draggedPageId = null;
+            card.classList.remove("dragging");
+        });
+        card.addEventListener("dragover", (event) => event.preventDefault());
+        card.addEventListener("drop", (event) => {
+            event.preventDefault();
+            const fromIndex = pageItems.findIndex((item) => item.id === draggedPageId);
+            const toIndex = pageItems.findIndex((item) => item.id === page.id);
+            if (fromIndex >= 0 && toIndex >= 0) movePdfPage(fromIndex, toIndex);
+        });
+        pdfPages.append(card);
+    });
+};
+
+const movePdfPage = (fromIndex, toIndex) => {
+    if (fromIndex === toIndex || toIndex < 0 || toIndex >= pageItems.length) return;
+    const [page] = pageItems.splice(fromIndex, 1);
+    pageItems.splice(toIndex, 0, page);
+    renderPdfPages();
+};
+
+const addPdfFiles = async (files) => {
+    if (!window.PDFLib) {
+        showToast("Le module PDF n’a pas pu être chargé");
+        return;
+    }
+
+    for (const file of Array.from(files)) {
+        try {
+            const bytes = await file.arrayBuffer();
+            const documentPdf = await PDFLib.PDFDocument.load(bytes);
+            const sourceId = `pdf-${pdfId++}`;
+            pdfSources.set(sourceId, { name: file.name, bytes });
+            for (let pageIndex = 0; pageIndex < documentPdf.getPageCount(); pageIndex += 1) {
+                pageItems.push({ id: `${sourceId}-${pageIndex}`, sourceId, pageIndex });
+            }
+        } catch {
+            showToast(`« ${file.name} » n’est pas un PDF lisible`);
+        }
+    }
+    renderPdfPages();
+};
+
+pdfInput.addEventListener("change", async () => {
+    await addPdfFiles(pdfInput.files);
+    pdfInput.value = "";
+});
+
+["dragenter", "dragover"].forEach((eventName) => {
+    pdfPages.addEventListener(eventName, (event) => event.preventDefault());
+});
+
+pdfPages.addEventListener("drop", (event) => {
+    if (draggedPageId) return;
+    event.preventDefault();
+    addPdfFiles(Array.from(event.dataTransfer.files).filter((file) => file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")));
+});
+
+clearPdf.addEventListener("click", () => {
+    pageItems = [];
+    pdfSources.clear();
+    renderPdfPages();
+});
+
+exportPdf.addEventListener("click", async () => {
+    if (!pageItems.length || !window.PDFLib) return;
+    exportPdf.disabled = true;
+    exportPdf.textContent = "Préparation…";
+    try {
+        const result = await PDFLib.PDFDocument.create();
+        const loadedSources = new Map();
+        for (const page of pageItems) {
+            if (!loadedSources.has(page.sourceId)) {
+                loadedSources.set(page.sourceId, await PDFLib.PDFDocument.load(pdfSources.get(page.sourceId).bytes));
+            }
+            const [copiedPage] = await result.copyPages(loadedSources.get(page.sourceId), [page.pageIndex]);
+            result.addPage(copiedPage);
+        }
+        const bytes = await result.save();
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
+        link.download = "document-assemble.pdf";
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+        showToast("PDF exporté");
+    } catch {
+        showToast("L’export du PDF a échoué");
+    } finally {
+        exportPdf.disabled = false;
+        exportPdf.textContent = "Exporter le PDF";
+    }
+});
+
+const qrValue = document.getElementById("qrValue");
+const qrSize = document.getElementById("qrSize");
+const qrColor = document.getElementById("qrColor");
+const qrExportFormat = document.getElementById("qrExportFormat");
+const qrPrintSizeCm = document.getElementById("qrPrintSizeCm");
+const qrLogoInput = document.getElementById("qrLogoInput");
+const qrLogoDropzone = document.getElementById("qrLogoDropzone");
+const qrLogoName = document.getElementById("qrLogoName");
+const removeQrLogo = document.getElementById("removeQrLogo");
+const qrPreview = document.getElementById("qrPreview");
+const qrResolution = document.getElementById("qrResolution");
+const qrStatus = document.getElementById("qrStatus");
+const downloadQr = document.getElementById("downloadQr");
+let qrModel = null;
+let qrSvg = "";
+let qrLogoImage = null;
+let qrLogoDataUrl = "";
+
+const exportLabel = (format) => format === "jpeg" ? "JPG" : format.toUpperCase();
+
+const centimetersToPoints = (centimeters) => centimeters * 28.3464567;
+
+const numericInputValue = (input, fallback) => {
+    const value = Number(input.value);
+    return Number.isFinite(value) && value > 0 ? value : fallback;
+};
+
+const canvasToBlob = (canvas, mimeType, quality = 0.94) => new Promise((resolve) => canvas.toBlob(resolve, mimeType, quality));
+
+const exportRepeatedA4Pdf = async ({ dataUrl, codeWidthCm, codeHeightCm, fileName }) => {
+    if (!window.PDFLib) {
+        showToast("Le module PDF n’a pas pu être chargé");
+        return;
+    }
+
+    const documentPdf = await PDFLib.PDFDocument.create();
+    const page = documentPdf.addPage(PDFLib.PageSizes.A4);
+    const pngImage = await documentPdf.embedPng(dataUrl);
+    const pageWidth = page.getWidth();
+    const pageHeight = page.getHeight();
+    const margin = centimetersToPoints(1);
+    const gap = centimetersToPoints(0.35);
+    const codeWidth = centimetersToPoints(codeWidthCm);
+    const codeHeight = centimetersToPoints(codeHeightCm);
+    const columns = Math.max(1, Math.floor((pageWidth - margin * 2 + gap) / (codeWidth + gap)));
+    const rows = Math.max(1, Math.floor((pageHeight - margin * 2 + gap) / (codeHeight + gap)));
+    const usedWidth = columns * codeWidth + (columns - 1) * gap;
+    const usedHeight = rows * codeHeight + (rows - 1) * gap;
+    const startX = (pageWidth - usedWidth) / 2;
+    const startY = (pageHeight - usedHeight) / 2;
+
+    for (let row = 0; row < rows; row += 1) {
+        for (let column = 0; column < columns; column += 1) {
+            page.drawImage(pngImage, {
+                x: startX + column * (codeWidth + gap),
+                y: pageHeight - startY - codeHeight - row * (codeHeight + gap),
+                width: codeWidth,
+                height: codeHeight,
+            });
+        }
+    }
+
+    const bytes = await documentPdf.save();
+    downloadBlob(new Blob([bytes], { type: "application/pdf" }), fileName);
+    showToast(`${columns * rows} code${columns * rows > 1 ? "s" : ""} placé${columns * rows > 1 ? "s" : ""} sur A4`);
+};
+
+const downloadBlob = (blob, fileName) => {
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = fileName;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+};
+
+const drawQrLogo = (context, size, image) => {
+    if (!image) return;
+    const plateSize = Math.round(size * 0.24);
+    const imageSize = Math.round(size * 0.18);
+    const plateOffset = Math.round((size - plateSize) / 2);
+    const imageScale = Math.min(imageSize / image.naturalWidth, imageSize / image.naturalHeight);
+    const imageWidth = Math.round(image.naturalWidth * imageScale);
+    const imageHeight = Math.round(image.naturalHeight * imageScale);
+    const imageX = Math.round((size - imageWidth) / 2);
+    const imageY = Math.round((size - imageHeight) / 2);
+
+    context.fillStyle = "#ffffff";
+    context.fillRect(plateOffset, plateOffset, plateSize, plateSize);
+    context.drawImage(image, imageX, imageY, imageWidth, imageHeight);
+};
+
+const drawQrCanvas = (model, size, color, logoImage) => {
+    const context = qrPreview.getContext("2d");
+    const moduleCount = model.getModuleCount();
+    const moduleSize = Math.max(1, Math.floor(size / (moduleCount + 8)));
+    const codeSize = moduleCount * moduleSize;
+    const offset = Math.floor((size - codeSize) / 2);
+
+    qrPreview.width = size;
+    qrPreview.height = size;
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, size, size);
+    context.fillStyle = color;
+
+    for (let row = 0; row < moduleCount; row += 1) {
+        for (let column = 0; column < moduleCount; column += 1) {
+            if (model.isDark(row, column)) {
+                context.fillRect(offset + column * moduleSize, offset + row * moduleSize, moduleSize, moduleSize);
+            }
+        }
+    }
+
+    drawQrLogo(context, size, logoImage);
+};
+
+const escapeXmlAttribute = (value) => value
+    .replaceAll("&", "&amp;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
+
+const createQrSvg = (model, color, size, logoDataUrl) => {
+    const moduleCount = model.getModuleCount();
+    const quietZone = 4;
+    const totalSize = moduleCount + quietZone * 2;
+    const modules = [];
+
+    for (let row = 0; row < moduleCount; row += 1) {
+        for (let column = 0; column < moduleCount; column += 1) {
+            if (model.isDark(row, column)) modules.push(`M${column + quietZone} ${row + quietZone}h1v1h-1z`);
+        }
+    }
+
+    let logo = "";
+    if (logoDataUrl) {
+        const plateSize = totalSize * 0.24;
+        const imageSize = totalSize * 0.18;
+        const plateOffset = (totalSize - plateSize) / 2;
+        const imageOffset = (totalSize - imageSize) / 2;
+        logo = `<rect x="${plateOffset}" y="${plateOffset}" width="${plateSize}" height="${plateSize}" fill="#fff"/><image href="${escapeXmlAttribute(logoDataUrl)}" x="${imageOffset}" y="${imageOffset}" width="${imageSize}" height="${imageSize}" preserveAspectRatio="xMidYMid meet"/>`;
+    }
+
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${totalSize} ${totalSize}" shape-rendering="crispEdges"><rect width="100%" height="100%" fill="#fff"/><path fill="${color}" d="${modules.join("")}"/>${logo}</svg>`;
+};
+
+const renderQrCode = () => {
+    const value = qrValue.value.trim();
+    const size = Number(qrSize.value);
+    qrStatus.className = "code-status";
+    downloadQr.textContent = `Télécharger le ${exportLabel(qrExportFormat.value)}`;
+    qrResolution.textContent = `Aperçu ajusté · export ${size} × ${size} px`;
+
+    if (!value) {
+        qrPreview.getContext("2d").clearRect(0, 0, qrPreview.width, qrPreview.height);
+        qrModel = null;
+        qrSvg = "";
+        qrStatus.textContent = "Saisis un texte ou une URL.";
+        downloadQr.disabled = true;
+        return;
+    }
+
+    if (!window.qrcode) {
+        qrStatus.textContent = "Le générateur de QR code n’a pas pu être chargé.";
+        qrStatus.className = "code-status error";
+        downloadQr.disabled = true;
+        return;
+    }
+
+    try {
+        qrcode.stringToBytes = (text) => Array.from(new TextEncoder().encode(text));
+        qrModel = qrcode(0, qrLogoImage ? "H" : "M");
+        qrModel.addData(value);
+        qrModel.make();
+        drawQrCanvas(qrModel, size, qrColor.value, qrLogoImage);
+        qrSvg = createQrSvg(qrModel, qrColor.value, size, qrLogoDataUrl);
+        qrStatus.textContent = `QR code prêt en ${size} × ${size} px${qrLogoImage ? " avec image centrale" : ""}.`;
+        downloadQr.disabled = false;
+    } catch {
+        qrModel = null;
+        qrSvg = "";
+        qrStatus.textContent = "Ce contenu ne peut pas être converti en QR code.";
+        qrStatus.className = "code-status error";
+        downloadQr.disabled = true;
+    }
+};
+
+[qrValue, qrSize, qrColor, qrExportFormat, qrPrintSizeCm].forEach((field) => field.addEventListener("input", renderQrCode));
+
+const readImageFile = (file) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+        const image = new Image();
+        image.onload = () => resolve({ image, dataUrl: reader.result });
+        image.onerror = reject;
+        image.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+});
+
+const setQrLogo = async (file) => {
+    if (!file) return;
+
+    const isImage = file.type.startsWith("image/") || file.name.toLowerCase().endsWith(".svg");
+    if (!isImage) {
+        showToast("Choisis un fichier image");
+        return;
+    }
+
+    try {
+        const logo = await readImageFile(file);
+        qrLogoImage = logo.image;
+        qrLogoDataUrl = logo.dataUrl;
+        qrLogoName.textContent = file.name;
+        removeQrLogo.hidden = false;
+        renderQrCode();
+    } catch {
+        showToast("Cette image ne peut pas être lue");
+    }
+};
+
+qrLogoInput.addEventListener("change", async () => {
+    const file = qrLogoInput.files[0];
+    qrLogoInput.value = "";
+    await setQrLogo(file);
+});
+
+["dragenter", "dragover"].forEach((eventName) => {
+    qrLogoDropzone.addEventListener(eventName, (event) => {
+        event.preventDefault();
+        qrLogoDropzone.classList.add("is-over");
+    });
+});
+
+["dragleave", "drop"].forEach((eventName) => {
+    qrLogoDropzone.addEventListener(eventName, (event) => {
+        event.preventDefault();
+        qrLogoDropzone.classList.remove("is-over");
+    });
+});
+
+qrLogoDropzone.addEventListener("drop", (event) => setQrLogo(event.dataTransfer.files[0]));
+
+removeQrLogo.addEventListener("click", () => {
+    qrLogoImage = null;
+    qrLogoDataUrl = "";
+    qrLogoName.textContent = "Dépose une image ici · PNG, JPG, WebP ou SVG";
+    removeQrLogo.hidden = true;
+    renderQrCode();
+});
+
+downloadQr.addEventListener("click", async () => {
+    if (!qrModel) return;
+    const format = qrExportFormat.value;
+
+    if (format === "svg") {
+        downloadBlob(new Blob([qrSvg], { type: "image/svg+xml" }), "qr-code.svg");
+        showToast("QR code téléchargé en SVG");
+        return;
+    }
+
+    if (format === "pdf") {
+        await exportRepeatedA4Pdf({
+            dataUrl: qrPreview.toDataURL("image/png"),
+            codeWidthCm: numericInputValue(qrPrintSizeCm, 4),
+            codeHeightCm: numericInputValue(qrPrintSizeCm, 4),
+            fileName: "qr-code-a4.pdf",
+        });
+        return;
+    }
+
+    const mimeType = format === "jpeg" ? "image/jpeg" : "image/png";
+    const blob = await canvasToBlob(qrPreview, mimeType, 0.94);
+    if (!blob) return;
+    downloadBlob(blob, `qr-code.${format === "jpeg" ? "jpg" : "png"}`);
+    showToast(`QR code téléchargé en ${exportLabel(format)}`);
+});
+
+const barcodeValue = document.getElementById("barcodeValue");
+const barcodeFormat = document.getElementById("barcodeFormat");
+const barcodeHeight = document.getElementById("barcodeHeight");
+const barcodeExportFormat = document.getElementById("barcodeExportFormat");
+const barcodePrintWidthCm = document.getElementById("barcodePrintWidthCm");
+const barcodePrintHeightCm = document.getElementById("barcodePrintHeightCm");
+const barcodeShowValue = document.getElementById("barcodeShowValue");
+const barcodePreview = document.getElementById("barcodePreview");
+const barcodeStatus = document.getElementById("barcodeStatus");
+const downloadBarcode = document.getElementById("downloadBarcode");
+
+const calculateGtinCheckDigit = (body) => {
+    const sum = [...body].reverse().reduce((total, character, index) => {
+        return total + Number(character) * (index % 2 === 0 ? 3 : 1);
+    }, 0);
+    return String((10 - (sum % 10)) % 10);
+};
+
+const validateRetailBarcode = (value, format) => {
+    if (format !== "EAN13" && format !== "UPC") return "";
+
+    const label = format === "EAN13" ? "EAN-13" : "UPC-A";
+    const bodyLength = format === "EAN13" ? 12 : 11;
+    const fullLength = bodyLength + 1;
+
+    if (!/^\d+$/.test(value)) return `${label} accepte uniquement des chiffres.`;
+    if (value.length !== bodyLength && value.length !== fullLength) {
+        return `${label} attend ${bodyLength} chiffres sans clé, ou ${fullLength} chiffres avec la clé de contrôle.`;
+    }
+
+    if (value.length === fullLength) {
+        const expectedDigit = calculateGtinCheckDigit(value.slice(0, -1));
+        if (value.at(-1) !== expectedDigit) {
+            return `Clé de contrôle ${label} incorrecte : le dernier chiffre devrait être ${expectedDigit}.`;
+        }
+    }
+
+    return "";
+};
+
+const renderBarcode = () => {
+    const value = barcodeValue.value.trim();
+    barcodeStatus.className = "code-status";
+    downloadBarcode.textContent = `Télécharger le ${exportLabel(barcodeExportFormat.value)}`;
+
+    if (!value) {
+        barcodePreview.replaceChildren();
+        barcodeStatus.textContent = "Saisis une valeur.";
+        downloadBarcode.disabled = true;
+        return;
+    }
+
+    const validationError = validateRetailBarcode(value, barcodeFormat.value);
+    if (validationError) {
+        barcodePreview.replaceChildren();
+        barcodeStatus.textContent = validationError;
+        barcodeStatus.className = "code-status error";
+        downloadBarcode.disabled = true;
+        return;
+    }
+
+    if (!window.JsBarcode) {
+        barcodeStatus.textContent = "Le générateur de codes-barres n’a pas pu être chargé.";
+        barcodeStatus.className = "code-status error";
+        downloadBarcode.disabled = true;
+        return;
+    }
+
+    try {
+        JsBarcode(barcodePreview, value, {
+            format: barcodeFormat.value,
+            height: Number(barcodeHeight.value),
+            width: 2,
+            margin: 18,
+            displayValue: barcodeShowValue.checked,
+            background: "#ffffff",
+            lineColor: "#182028",
+        });
+        barcodeStatus.textContent = `${barcodeFormat.value} prêt à télécharger.`;
+        downloadBarcode.disabled = false;
+    } catch {
+        barcodePreview.replaceChildren();
+        barcodeStatus.textContent = `La valeur n’est pas valide pour le format ${barcodeFormat.value}.`;
+        barcodeStatus.className = "code-status error";
+        downloadBarcode.disabled = true;
+    }
+};
+
+[barcodeValue, barcodeFormat, barcodeHeight, barcodeExportFormat, barcodePrintWidthCm, barcodePrintHeightCm, barcodeShowValue].forEach((field) => field.addEventListener("input", renderBarcode));
+
+downloadBarcode.addEventListener("click", async () => {
+    const svg = barcodePreview.cloneNode(true);
+    svg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+    const source = new XMLSerializer().serializeToString(svg);
+    const format = barcodeExportFormat.value;
+
+    if (format === "svg") {
+        downloadBlob(new Blob([source], { type: "image/svg+xml" }), "code-barres.svg");
+        showToast("Code-barres téléchargé en SVG");
+        return;
+    }
+
+    const svgUrl = URL.createObjectURL(new Blob([source], { type: "image/svg+xml" }));
+    const image = new Image();
+    try {
+        await new Promise((resolve, reject) => {
+            image.onload = resolve;
+            image.onerror = reject;
+            image.src = svgUrl;
+        });
+        const width = Math.ceil(Number.parseFloat(svg.getAttribute("width")) || image.naturalWidth);
+        const height = Math.ceil(Number.parseFloat(svg.getAttribute("height")) || image.naturalHeight);
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const context = canvas.getContext("2d");
+        context.fillStyle = "#ffffff";
+        context.fillRect(0, 0, width, height);
+        context.drawImage(image, 0, 0, width, height);
+        if (format === "pdf") {
+            await exportRepeatedA4Pdf({
+                dataUrl: canvas.toDataURL("image/png"),
+                codeWidthCm: numericInputValue(barcodePrintWidthCm, 6),
+                codeHeightCm: numericInputValue(barcodePrintHeightCm, 3),
+                fileName: "code-barres-a4.pdf",
+            });
+            return;
+        }
+
+        const mimeType = format === "jpeg" ? "image/jpeg" : "image/png";
+        const blob = await canvasToBlob(canvas, mimeType, 0.94);
+        if (!blob) return;
+        downloadBlob(blob, `code-barres.${format === "jpeg" ? "jpg" : "png"}`);
+        showToast(`Code-barres téléchargé en ${exportLabel(format)}`);
+    } catch {
+        showToast("L’export du code-barres a échoué");
+    } finally {
+        URL.revokeObjectURL(svgUrl);
+    }
+});
+
+loadSharedFiles();
+renderPdfPages();
+renderQrCode();
+renderBarcode();
+</script>
+</body>
+</html>

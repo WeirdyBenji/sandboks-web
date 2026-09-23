@@ -1,0 +1,13 @@
+{
+  "name": "sandbox-internal-tools",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "PORT=3007 node server.mjs"
+  },
+  "dependencies": {
+    "jsbarcode": "3.11.6",
+    "pdf-lib": "1.17.1",
+    "qrcode-generator": "1.4.4"
+  }
+}
