@@ -4,14 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Pencil, Trash2, Check, X, ArrowUp, ArrowDown } from "lucide-react";
+import { Plus, Pencil, Trash2, Check, X, ArrowUpDown } from "lucide-react";
 
 interface ProjectManagerProps {
   projects: Project[];
   onAdd: (name: string, description: string) => void;
   onUpdate: (id: string, name: string, description: string) => void;
   onRemove: (id: string) => void;
-  onReorder: (id: string, direction: "up" | "down") => void;
+  onMove: (id: string, targetId: string) => void;
   onStartComparison: () => void;
 }
 
@@ -20,7 +20,7 @@ export function ProjectManager({
   onAdd,
   onUpdate,
   onRemove,
-  onReorder,
+  onMove,
   onStartComparison,
 }: ProjectManagerProps) {
   const [newName, setNewName] = useState("");
@@ -28,6 +28,8 @@ export function ProjectManager({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editDescription, setEditDescription] = useState("");
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
 
   const handleAdd = () => {
     if (newName.trim()) {
@@ -100,7 +102,28 @@ export function ProjectManager({
           </h2>
           <div className="space-y-2">
             {projects.map((project, index) => (
-              <Card key={project.id} className="border-border/50">
+              <Card
+                key={project.id}
+                className={`border-border/50 transition-colors ${
+                  dragOverId === project.id && draggingId !== project.id
+                    ? "border-primary bg-primary/5"
+                    : ""
+                } ${draggingId === project.id ? "opacity-60" : ""}`}
+                onDragOver={(event) => {
+                  if (!draggingId || draggingId === project.id) return;
+                  event.preventDefault();
+                  setDragOverId(project.id);
+                }}
+                onDragLeave={() => {
+                  if (dragOverId === project.id) setDragOverId(null);
+                }}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  if (draggingId) onMove(draggingId, project.id);
+                  setDraggingId(null);
+                  setDragOverId(null);
+                }}
+              >
                 <CardContent className="p-4">
                   {editingId === project.id ? (
                     <div className="space-y-2">
@@ -147,26 +170,24 @@ export function ProjectManager({
                         )}
                       </div>
                       <div className="flex shrink-0 gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => onReorder(project.id, "up")}
-                          disabled={index === 0}
-                          aria-label={`Monter ${project.name}`}
+                        <button
+                          type="button"
+                          draggable
+                          className="flex h-8 w-8 cursor-grab items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground active:cursor-grabbing"
+                          onDragStart={(event) => {
+                            event.dataTransfer.effectAllowed = "move";
+                            event.dataTransfer.setData("text/plain", project.id);
+                            setDraggingId(project.id);
+                          }}
+                          onDragEnd={() => {
+                            setDraggingId(null);
+                            setDragOverId(null);
+                          }}
+                          aria-label={`Déplacer ${project.name}`}
+                          title="Glisser-déposer pour réordonner"
                         >
-                          <ArrowUp className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => onReorder(project.id, "down")}
-                          disabled={index === projects.length - 1}
-                          aria-label={`Descendre ${project.name}`}
-                        >
-                          <ArrowDown className="h-3.5 w-3.5" />
-                        </Button>
+                          <ArrowUpDown className="h-3.5 w-3.5" />
+                        </button>
                         <Button
                           variant="ghost"
                           size="icon"

@@ -87,20 +87,18 @@ export function usePrioritization() {
     [setState]
   );
 
-  const reorderProject = useCallback(
-    (id: string, direction: "up" | "down") => {
+  const moveProject = useCallback(
+    (id: string, targetId: string) => {
+      if (id === targetId) return;
+
       setState((prev) => {
         const currentIndex = prev.projects.findIndex((project) => project.id === id);
-        if (currentIndex === -1) return prev;
-
-        const nextIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
-        if (nextIndex < 0 || nextIndex >= prev.projects.length) return prev;
+        const targetIndex = prev.projects.findIndex((project) => project.id === targetId);
+        if (currentIndex === -1 || targetIndex === -1) return prev;
 
         const projects = [...prev.projects];
-        [projects[currentIndex], projects[nextIndex]] = [
-          projects[nextIndex],
-          projects[currentIndex],
-        ];
+        const [project] = projects.splice(currentIndex, 1);
+        projects.splice(targetIndex, 0, project);
         const comparisons = mergeComparisonPairs(projects, prev.comparisons);
 
         return {
@@ -215,7 +213,7 @@ export function usePrioritization() {
     addProject,
     updateProject,
     removeProject,
-    reorderProject,
+    moveProject,
     startComparison,
     setWinner,
     setMatrixWinner,
