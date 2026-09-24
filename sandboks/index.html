@@ -606,6 +606,56 @@ h1 {
     cursor: pointer;
 }
 
+.pdf-extract-status {
+    padding: 0 20px 16px;
+    color: var(--muted);
+    font-size: 0.82rem;
+}
+
+.pdf-extract-status:empty { display: none; }
+
+.pdf-extract-list {
+    padding: 0 20px 18px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+}
+
+.pdf-extract-list:empty { display: none; }
+
+.extracted-image {
+    padding: 10px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    display: grid;
+    gap: 8px;
+    background: #f8f6f0;
+}
+
+.extracted-image img {
+    width: 100%;
+    aspect-ratio: 1.35;
+    border-radius: 9px;
+    object-fit: contain;
+    background: white;
+}
+
+.extracted-image span {
+    overflow: hidden;
+    color: var(--muted);
+    font-size: 0.72rem;
+    font-weight: 650;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.extracted-image a {
+    color: var(--blue);
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-decoration: none;
+}
+
 .code-grid {
     margin-top: 34px;
     display: grid;
@@ -1279,10 +1329,13 @@ h1 {
                     <div class="button-row">
                         <label class="button ghost" for="pdfInput">Ajouter des PDF</label>
                         <input id="pdfInput" type="file" accept="application/pdf,.pdf" multiple hidden />
+                        <button class="button ghost" id="extractPdfImages" type="button" disabled>Extraire les images</button>
                         <button class="button danger" id="clearPdf" type="button" disabled>Tout retirer</button>
                         <button class="button orange" id="exportPdf" type="button" disabled>Exporter le PDF</button>
                     </div>
                 </div>
+                <div class="pdf-extract-status" id="pdfExtractStatus" role="status"></div>
+                <div class="pdf-extract-list" id="pdfExtractResults"></div>
                 <div class="pdf-pages" id="pdfPages">
                     <label class="pdf-empty" for="pdfInput">
                         <span><strong>Dépose ou sélectionne tes PDF</strong><br />Les pages apparaîtront ici.</span>
@@ -1900,6 +1953,9 @@ downloadFavicon.addEventListener("click", async () => {
 const pdfInput = document.getElementById("pdfInput");
 const pdfPages = document.getElementById("pdfPages");
 const pdfSummary = document.getElementById("pdfSummary");
+const pdfExtractStatus = document.getElementById("pdfExtractStatus");
+const pdfExtractResults = document.getElementById("pdfExtractResults");
+const extractPdfImages = document.getElementById("extractPdfImages");
 const clearPdf = document.getElementById("clearPdf");
 const exportPdf = document.getElementById("exportPdf");
 const pdfSources = new Map();
@@ -1909,6 +1965,7 @@ let pdfId = 0;
 let draggedPageId = null;
 let pdfJsModule = null;
 let previewsDisabledForPageCount = false;
+let extractedPdfImageUrls = [];
 
 const renderPdfPages = () => {
     pdfPages.replaceChildren();
@@ -1918,6 +1975,7 @@ const renderPdfPages = () => {
         ? `${pageItems.length} page${pageItems.length > 1 ? "s" : ""} · ${sourceCount} document${sourceCount > 1 ? "s" : ""}${previewMode}`
         : "Aucun PDF ajouté";
     clearPdf.disabled = pageItems.length === 0;
+    extractPdfImages.disabled = pageItems.length === 0;
     exportPdf.disabled = pageItems.length === 0;
 
     if (!pageItems.length) {
@@ -2069,6 +2127,175 @@ const renderMissingPdfPreviews = async () => {
     }
 };
 
+const clearExtractedPdfImages = () => {
+    extractedPdfImageUrls.forEach((url) => URL.revokeObjectURL(url));
+    extractedPdfImageUrls = [];
+    pdfExtractStatus.textContent = "";
+    pdfExtractResults.replaceChildren();
+};
+
+const renderExtractedPdfImages = (images) => {
+    clearExtractedPdfImages();
+    if (!images.length) {
+        pdfExtractStatus.textContent = "Aucune image embarquée trouvée dans les PDF ajoutés.";
+        return;
+    }
+
+    pdfExtractStatus.textContent = `${images.length} image${images.length > 1 ? "s" : ""} extraite${images.length > 1 ? "s" : ""}`;
+    const fragment = document.createDocumentFragment();
+    images.forEach((image) => {
+        const url = URL.createObjectURL(image.blob);
+        extractedPdfImageUrls.push(url);
+        const card = document.createElement("article");
+        card.className = "extracted-image";
+        const preview = document.createElement("img");
+        preview.src = url;
+        preview.alt = image.name;
+        const name = document.createElement("span");
+        name.textContent = `${image.name} · ${image.width}×${image.height}`;
+        name.title = name.textContent;
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = image.name;
+        link.textContent = "Télécharger";
+        card.append(preview, name, link);
+        fragment.append(card);
+    });
+    pdfExtractResults.append(fragment);
+};
+
+const pdfObjectToCanvas = (image) => {
+    if (!image) return null;
+
+    if (image instanceof HTMLCanvasElement) return image;
+
+    const width = image.width || image.bitmap?.width;
+    const height = image.height || image.bitmap?.height;
+    if (!width || !height) return null;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext("2d");
+
+    if (image instanceof ImageBitmap || image instanceof HTMLImageElement || image.bitmap) {
+        context.drawImage(image.bitmap || image, 0, 0);
+        return canvas;
+    }
+
+    if (image instanceof ImageData) {
+        context.putImageData(image, 0, 0);
+        return canvas;
+    }
+
+    if (!image.data) return null;
+
+    const rgba = context.createImageData(width, height);
+    const source = image.data;
+    const pixelCount = width * height;
+    if (source.length === pixelCount * 4) {
+        rgba.data.set(source);
+    } else if (source.length === pixelCount * 3) {
+        for (let sourceIndex = 0, targetIndex = 0; sourceIndex < source.length; sourceIndex += 3, targetIndex += 4) {
+            rgba.data[targetIndex] = source[sourceIndex];
+            rgba.data[targetIndex + 1] = source[sourceIndex + 1];
+            rgba.data[targetIndex + 2] = source[sourceIndex + 2];
+            rgba.data[targetIndex + 3] = 255;
+        }
+    } else if (source.length === pixelCount) {
+        for (let sourceIndex = 0, targetIndex = 0; sourceIndex < source.length; sourceIndex += 1, targetIndex += 4) {
+            rgba.data[targetIndex] = source[sourceIndex];
+            rgba.data[targetIndex + 1] = source[sourceIndex];
+            rgba.data[targetIndex + 2] = source[sourceIndex];
+            rgba.data[targetIndex + 3] = 255;
+        }
+    } else {
+        return null;
+    }
+
+    context.putImageData(rgba, 0, 0);
+    return canvas;
+};
+
+const pdfImageToBlob = async (image) => {
+    const canvas = pdfObjectToCanvas(image);
+    if (!canvas) return null;
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+    return blob ? { blob, width: canvas.width, height: canvas.height } : null;
+};
+
+const readPdfPageObject = (page, name) => new Promise((resolve, reject) => {
+    let settled = false;
+    const done = (value) => {
+        if (settled) return;
+        settled = true;
+        resolve(value);
+    };
+    const fail = (error) => {
+        if (settled) return;
+        settled = true;
+        reject(error);
+    };
+    window.setTimeout(() => fail(new Error("PDF image read timed out")), 5000);
+    try {
+        const value = page.objs.get(name, done);
+        if (value) done(value);
+    } catch (error) {
+        try {
+            const value = page.commonObjs.get(name, done);
+            if (value) done(value);
+        } catch (commonError) {
+            fail(commonError || error);
+        }
+    }
+});
+
+const extractImagesFromPdfPage = async (pdfjs, page, sourceName, pageIndex) => {
+    const operatorList = await page.getOperatorList();
+    const imageOps = new Set([
+        pdfjs.OPS.paintImageXObject,
+        pdfjs.OPS.paintJpegXObject,
+        pdfjs.OPS.paintInlineImageXObject,
+        pdfjs.OPS.paintImageMaskXObject,
+        pdfjs.OPS.paintImageXObjectRepeat,
+        pdfjs.OPS.paintInlineImageXObjectGroup,
+    ].filter(Number.isFinite));
+    const images = [];
+
+    for (let index = 0; index < operatorList.fnArray.length; index += 1) {
+        if (!imageOps.has(operatorList.fnArray[index])) continue;
+        const args = operatorList.argsArray[index] || [];
+        const candidate = typeof args[0] === "string" ? await readPdfPageObject(page, args[0]) : args[0];
+        const result = await pdfImageToBlob(candidate);
+        if (!result) continue;
+        const imageNumber = images.length + 1;
+        const safeSource = sourceName.replace(/\.[^.]+$/, "").replace(/[^a-zA-Z0-9._-]+/g, "-").slice(0, 60) || "pdf";
+        images.push({
+            ...result,
+            name: `${safeSource}-page-${pageIndex + 1}-image-${imageNumber}.png`,
+        });
+    }
+
+    return images;
+};
+
+const extractPdfImagesFromSources = async () => {
+    if (!pdfSources.size) return [];
+    const pdfjs = await loadPdfJs();
+    const images = [];
+
+    for (const source of pdfSources.values()) {
+        const task = pdfjs.getDocument({ data: new Uint8Array(source.bytes.slice(0)) });
+        const documentPdf = await task.promise;
+        for (let pageIndex = 0; pageIndex < documentPdf.numPages; pageIndex += 1) {
+            const page = await documentPdf.getPage(pageIndex + 1);
+            images.push(...await extractImagesFromPdfPage(pdfjs, page, source.name, pageIndex));
+        }
+    }
+
+    return images;
+};
+
 const addPdfFiles = async (files) => {
     if (!window.PDFLib) {
         showToast("Le module PDF n’a pas pu être chargé");
@@ -2077,6 +2304,7 @@ const addPdfFiles = async (files) => {
 
     for (const file of Array.from(files)) {
         try {
+            clearExtractedPdfImages();
             const bytes = await file.arrayBuffer();
             const documentPdf = await PDFLib.PDFDocument.load(bytes);
             const sourceId = `pdf-${pdfId++}`;
@@ -2111,7 +2339,27 @@ clearPdf.addEventListener("click", () => {
     pageItems = [];
     pdfSources.clear();
     previewsDisabledForPageCount = false;
+    clearExtractedPdfImages();
     renderPdfPages();
+});
+
+extractPdfImages.addEventListener("click", async () => {
+    if (!pdfSources.size) return;
+    extractPdfImages.disabled = true;
+    extractPdfImages.textContent = "Extraction…";
+    pdfExtractStatus.textContent = "Extraction des images embarquées…";
+    pdfExtractResults.replaceChildren();
+    try {
+        const images = await extractPdfImagesFromSources();
+        renderExtractedPdfImages(images);
+    } catch (error) {
+        console.warn("PDF image extraction failed", error);
+        pdfExtractStatus.textContent = "L’extraction des images a échoué.";
+        showToast("L’extraction des images PDF a échoué");
+    } finally {
+        extractPdfImages.disabled = pageItems.length === 0;
+        extractPdfImages.textContent = "Extraire les images";
+    }
 });
 
 exportPdf.addEventListener("click", async () => {
