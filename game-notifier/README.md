@@ -57,9 +57,11 @@ Les évènements possédant une URL l'affichent directement sous le message Disc
 
 ### Invitation et permissions du bot
 
-Lien d'invitation recommandé, limité aux permissions de base :
+Lien d'invitation recommandé, limité aux permissions de base, construit depuis `DISCORD_CLIENT_ID` :
 
-<https://discord.com/oauth2/authorize?client_id=784128689302011945&permissions=68608&scope=bot>
+```bash
+printf 'https://discord.com/oauth2/authorize?client_id=%s&permissions=68608&scope=bot\n' "$DISCORD_CLIENT_ID"
+```
 
 | Permission | Valeur | Utilisation |
 | --- | ---: | --- |
@@ -71,7 +73,9 @@ Le bitfield minimal est donc `68608`. Pour respecter le moindre privilège, acco
 
 Lien tout-en-un incluant `Manage Webhooks` au niveau du serveur :
 
-<https://discord.com/oauth2/authorize?client_id=784128689302011945&permissions=536939520&scope=bot>
+```bash
+printf 'https://discord.com/oauth2/authorize?client_id=%s&permissions=536939520&scope=bot\n' "$DISCORD_CLIENT_ID"
+```
 
 Une URL de webhook déjà créée peut être collée dans `/admin/channels` sans donner `Manage Webhooks` au bot : le token inclus dans cette URL autorise directement l'envoi, la modification et la suppression des messages de ce webhook. Cette URL est un secret.
 
