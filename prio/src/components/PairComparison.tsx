@@ -126,43 +126,51 @@ export function PairComparison({
         </button>
       </div>
 
-      <div className="flex items-center justify-between">
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={currentPairIndex === 0}
-          onClick={() => onSetCurrentPairIndex(currentPairIndex - 1)}
-        >
-          <ChevronLeft className="mr-1 h-4 w-4" />
-          Précédent
-        </Button>
+      <div className="space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={currentPairIndex === 0}
+            onClick={() => onSetCurrentPairIndex(currentPairIndex - 1)}
+          >
+            <ChevronLeft className="mr-1 h-4 w-4" />
+            Précédent
+          </Button>
 
-        <div className="flex gap-1">
-          {comparisons.map((c, i) => (
-            <button
-              key={i}
-              onClick={() => onSetCurrentPairIndex(i)}
-              className={`h-2.5 w-2.5 rounded-full transition-all ${
-                i === currentPairIndex
-                  ? "bg-primary scale-125"
-                  : c.winner
-                    ? "bg-primary/40"
-                    : "bg-muted-foreground/20"
-              }`}
-              aria-label={`Comparaison ${i + 1}`}
-            />
-          ))}
+          <span className="text-xs text-muted-foreground">
+            {currentPairIndex + 1} / {totalComparisons}
+          </span>
+
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={currentPairIndex === comparisons.length - 1}
+            onClick={() => onSetCurrentPairIndex(currentPairIndex + 1)}
+          >
+            Suivant
+            <ChevronRight className="ml-1 h-4 w-4" />
+          </Button>
         </div>
 
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={currentPairIndex === comparisons.length - 1}
-          onClick={() => onSetCurrentPairIndex(currentPairIndex + 1)}
-        >
-          Suivant
-          <ChevronRight className="ml-1 h-4 w-4" />
-        </Button>
+        <div className="max-h-24 overflow-y-auto rounded-md border border-border/50 bg-muted/20 p-2">
+          <div className="flex flex-wrap justify-center gap-1">
+            {comparisons.map((c, i) => (
+              <button
+                key={i}
+                onClick={() => onSetCurrentPairIndex(i)}
+                className={`h-2.5 w-2.5 shrink-0 rounded-full transition-all ${
+                  i === currentPairIndex
+                    ? "scale-125 bg-primary"
+                    : c.winner
+                      ? "bg-primary/40"
+                      : "bg-muted-foreground/20"
+                }`}
+                aria-label={`Comparaison ${i + 1}`}
+              />
+            ))}
+          </div>
+        </div>
       </div>
 
       {allCompared && (
