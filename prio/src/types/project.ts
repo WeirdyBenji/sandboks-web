@@ -31,6 +31,38 @@ export function generatePairs(projects: Project[]): Comparison[] {
   return pairs;
 }
 
+function comparisonKey(projectA: string, projectB: string): string {
+  return [projectA, projectB].sort().join("::");
+}
+
+export function mergeComparisonPairs(
+  projects: Project[],
+  existingComparisons: Comparison[]
+): Comparison[] {
+  const projectIds = new Set(projects.map((project) => project.id));
+  const existingByPair = new Map(
+    existingComparisons
+      .filter(
+        (comparison) =>
+          projectIds.has(comparison.projectA) && projectIds.has(comparison.projectB)
+      )
+      .map((comparison) => [
+        comparisonKey(comparison.projectA, comparison.projectB),
+        comparison,
+      ])
+  );
+
+  return generatePairs(projects).map((pair) => {
+    const existing = existingByPair.get(comparisonKey(pair.projectA, pair.projectB));
+    return existing ? { ...pair, winner: existing.winner } : pair;
+  });
+}
+
+export function firstPendingComparisonIndex(comparisons: Comparison[]): number {
+  const index = comparisons.findIndex((comparison) => comparison.winner === null);
+  return index === -1 ? Math.max(comparisons.length - 1, 0) : index;
+}
+
 export function calculateRankings(
   projects: Project[],
   comparisons: Comparison[]

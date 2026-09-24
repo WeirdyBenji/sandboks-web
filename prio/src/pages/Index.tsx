@@ -27,6 +27,7 @@ const Index = () => {
     addProject,
     updateProject,
     removeProject,
+    reorderProject,
     startComparison,
     setWinner,
     setMatrixWinner,
@@ -105,6 +106,7 @@ const Index = () => {
               onAdd={addProject}
               onUpdate={updateProject}
               onRemove={removeProject}
+              onReorder={reorderProject}
               onStartComparison={startComparison}
             />
           </TabsContent>

@@ -4,13 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Pencil, Trash2, Check, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Check, X, ArrowUp, ArrowDown } from "lucide-react";
 
 interface ProjectManagerProps {
   projects: Project[];
   onAdd: (name: string, description: string) => void;
   onUpdate: (id: string, name: string, description: string) => void;
   onRemove: (id: string) => void;
+  onReorder: (id: string, direction: "up" | "down") => void;
   onStartComparison: () => void;
 }
 
@@ -19,6 +20,7 @@ export function ProjectManager({
   onAdd,
   onUpdate,
   onRemove,
+  onReorder,
   onStartComparison,
 }: ProjectManagerProps) {
   const [newName, setNewName] = useState("");
@@ -149,7 +151,28 @@ export function ProjectManager({
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8"
+                          onClick={() => onReorder(project.id, "up")}
+                          disabled={index === 0}
+                          aria-label={`Monter ${project.name}`}
+                        >
+                          <ArrowUp className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => onReorder(project.id, "down")}
+                          disabled={index === projects.length - 1}
+                          aria-label={`Descendre ${project.name}`}
+                        >
+                          <ArrowDown className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
                           onClick={() => startEdit(project)}
+                          aria-label={`Modifier ${project.name}`}
                         >
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
@@ -158,6 +181,7 @@ export function ProjectManager({
                           size="icon"
                           className="h-8 w-8 text-destructive hover:text-destructive"
                           onClick={() => onRemove(project.id)}
+                          aria-label={`Supprimer ${project.name}`}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>

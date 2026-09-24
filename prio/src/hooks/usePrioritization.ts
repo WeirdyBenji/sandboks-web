@@ -4,9 +4,10 @@ import {
   Project,
   Comparison,
   AppStep,
-  generatePairs,
   calculateRankings,
+  firstPendingComparisonIndex,
   getComparisonResult,
+  mergeComparisonPairs,
 } from "@/types/project";
 
 const STORAGE_KEY = "prioritization-matrix";
@@ -33,15 +34,26 @@ export function usePrioritization() {
 
   const addProject = useCallback(
     (name: string, description: string = "") => {
-      setState((prev) => ({
-        ...prev,
-        projects: [
+      setState((prev) => {
+        const projects = [
           ...prev.projects,
           { id: crypto.randomUUID(), name, description },
-        ],
-        comparisons: [], // reset comparisons when projects change
-        currentPairIndex: 0,
-      }));
+        ];
+        const comparisons =
+          prev.comparisons.length > 0
+            ? mergeComparisonPairs(projects, prev.comparisons)
+            : prev.comparisons;
+
+        return {
+          ...prev,
+          projects,
+          comparisons,
+          currentPairIndex:
+            comparisons.length > 0
+              ? firstPendingComparisonIndex(comparisons)
+              : prev.currentPairIndex,
+        };
+      });
     },
     [setState]
   );
@@ -60,23 +72,62 @@ export function usePrioritization() {
 
   const removeProject = useCallback(
     (id: string) => {
-      setState((prev) => ({
-        ...prev,
-        projects: prev.projects.filter((p) => p.id !== id),
-        comparisons: [],
-        currentPairIndex: 0,
-      }));
+      setState((prev) => {
+        const projects = prev.projects.filter((project) => project.id !== id);
+        const comparisons = mergeComparisonPairs(projects, prev.comparisons);
+
+        return {
+          ...prev,
+          projects,
+          comparisons,
+          currentPairIndex: firstPendingComparisonIndex(comparisons),
+        };
+      });
+    },
+    [setState]
+  );
+
+  const reorderProject = useCallback(
+    (id: string, direction: "up" | "down") => {
+      setState((prev) => {
+        const currentIndex = prev.projects.findIndex((project) => project.id === id);
+        if (currentIndex === -1) return prev;
+
+        const nextIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+        if (nextIndex < 0 || nextIndex >= prev.projects.length) return prev;
+
+        const projects = [...prev.projects];
+        [projects[currentIndex], projects[nextIndex]] = [
+          projects[nextIndex],
+          projects[currentIndex],
+        ];
+        const comparisons = mergeComparisonPairs(projects, prev.comparisons);
+
+        return {
+          ...prev,
+          projects,
+          comparisons,
+          currentPairIndex:
+            comparisons.length > 0
+              ? Math.min(prev.currentPairIndex, comparisons.length - 1)
+              : 0,
+        };
+      });
     },
     [setState]
   );
 
   const startComparison = useCallback(() => {
-    setState((prev) => ({
-      ...prev,
-      comparisons: generatePairs(prev.projects),
-      currentStep: "compare",
-      currentPairIndex: 0,
-    }));
+    setState((prev) => {
+      const comparisons = mergeComparisonPairs(prev.projects, prev.comparisons);
+
+      return {
+        ...prev,
+        comparisons,
+        currentStep: "compare",
+        currentPairIndex: firstPendingComparisonIndex(comparisons),
+      };
+    });
   }, [setState]);
 
   const setWinner = useCallback(
@@ -87,14 +138,16 @@ export function usePrioritization() {
           ...newComparisons[pairIndex],
           winner: winnerId,
         };
-        const nextIndex = Math.min(pairIndex + 1, newComparisons.length - 1);
+        const nextIndex = newComparisons.findIndex(
+          (comparison, index) => index > pairIndex && comparison.winner === null
+        );
         return {
           ...prev,
           comparisons: newComparisons,
           currentPairIndex:
-            pairIndex < newComparisons.length - 1
+            nextIndex !== -1
               ? nextIndex
-              : prev.currentPairIndex,
+              : firstPendingComparisonIndex(newComparisons),
         };
       });
     },
@@ -162,6 +215,7 @@ export function usePrioritization() {
     addProject,
     updateProject,
     removeProject,
+    reorderProject,
     startComparison,
     setWinner,
     setMatrixWinner,
