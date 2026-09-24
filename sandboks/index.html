@@ -2220,7 +2220,7 @@ const pdfObjectToCanvas = (image) => {
 const pdfImageToBlob = async (image) => {
     const canvas = pdfObjectToCanvas(image);
     if (!canvas) return null;
-    const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.86));
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
     return blob ? { blob, width: canvas.width, height: canvas.height } : null;
 };
 
@@ -2272,7 +2272,7 @@ const extractImagesFromPdfPage = async (pdfjs, page, sourceName, pageIndex) => {
         const safeSource = sourceName.replace(/\.[^.]+$/, "").replace(/[^a-zA-Z0-9._-]+/g, "-").slice(0, 60) || "pdf";
         images.push({
             ...result,
-            name: `${safeSource}-page-${pageIndex + 1}-image-${imageNumber}.jpg`,
+            name: `${safeSource}-page-${pageIndex + 1}-image-${imageNumber}.png`,
         });
     }
 
