@@ -22,7 +22,8 @@ Use only targeted mutations:
 3. Check existing rows before adding. Compare `tmdbId` and normalized title. Repeated `tmdbId` can be intentional for separate seasons or contexts, so do not merge unless the title/context clearly matches.
 4. Preserve user-owned fields on existing rows unless explicitly asked: `personalNote`, `watchedAt`, `status`, `mar`, `benji`, `enteredBy`.
 5. For existing rows, complete only useful empty metadata fields through `updateMovie`.
-6. Do not send unknown `action` values.
+6. Before leaving `rtUrl`, `rtCriticsScore`, or `rtAudienceScore` empty/null, explicitly search the web for a direct Rotten Tomatoes movie/TV/season page.
+7. Do not send unknown `action` values.
 
 ## Metadata Rules
 
@@ -33,9 +34,9 @@ For every new row, fill:
 - `title`: clear display title. Include season label when adding a specific season, for example `The Last of Us S2`.
 - `year`: release year or first air year.
 - `poster`: TMDb `w92` poster URL when available.
-- `rtUrl`: direct Rotten Tomatoes page when reliably matched; MyAnimeList for anime when better; RT search URL only as fallback.
-- `rtCriticsScore`: Tomatometer score from the direct RT page, or `null`.
-- `rtAudienceScore`: Popcornmeter score from the direct RT page, or `null`.
+- `rtUrl`: direct Rotten Tomatoes page when reliably matched; MyAnimeList/AniList only when RT has no reliable page; RT search URL only as last fallback.
+- `rtCriticsScore`: Tomatometer score from the direct RT page, or `null` only after a direct RT/web search confirms no score is available.
+- `rtAudienceScore`: Popcornmeter score from the direct RT page, or `null` only after a direct RT/web search confirms no score is available.
 - `personalNote`: `""`.
 - `addedAt`: current ISO timestamp.
 - `watchedAt`: `""` unless the user says it was watched.
@@ -49,11 +50,11 @@ For every new row, fill:
 
 ## Source Selection
 
-- Films: search TMDb movie results; prefer direct Rotten Tomatoes movie pages; fill both RT scores when available.
-- TV shows and seasons: search TMDb TV results; use `category: "série"` and `mediaType: "tv"`; prefer RT TV/season URLs such as `/tv/show_name/s02`.
-- Anime: use `category: "anime"`; prefer MyAnimeList when it is more reliable than Rotten Tomatoes. Use RT only when there is a clearly matching page.
+- Films: search TMDb movie results and then search the web/Rotten Tomatoes for a direct movie page; fill both RT scores when available.
+- TV shows and seasons: search TMDb TV results; use `category: "série"` and `mediaType: "tv"`; search RT TV/season URLs such as `/tv/show_name/s02`.
+- Anime: use `category: "anime"`; search RT first for released/current seasons, then prefer MyAnimeList/AniList only when RT has no reliable matching page.
 - Animation that is not anime: use `category: "animation"` unless the user requested another category.
-- Future or unreleased titles: leave unavailable scores as `null`.
+- Future or unreleased titles: verify release/review status with a web search before leaving scores as `null`; if RT already has a page and scores, use them.
 
 ## Payloads
 
