@@ -2014,8 +2014,10 @@ const movePdfPage = (fromIndex, toIndex) => {
 
 const loadPdfJs = async () => {
     if (pdfJsModule) return pdfJsModule;
-    pdfJsModule = await import("/vendor/pdf.min.mjs");
-    pdfJsModule.GlobalWorkerOptions.workerSrc = "/vendor/pdf.worker.min.mjs";
+    const pdfJsUrl = new URL("vendor/pdf.min.mjs", window.location.href).href;
+    const workerUrl = new URL("vendor/pdf.worker.min.mjs", window.location.href).href;
+    pdfJsModule = await import(pdfJsUrl);
+    pdfJsModule.GlobalWorkerOptions.workerSrc = workerUrl;
     return pdfJsModule;
 };
 
@@ -2044,18 +2046,26 @@ const renderMissingPdfPreviews = async () => {
     try {
         const pdfjs = await loadPdfJs();
         const documents = new Map();
+        let renderedCount = 0;
         for (const page of missingPages) {
-            if (!documents.has(page.sourceId)) {
-                const source = pdfSources.get(page.sourceId);
-                const task = pdfjs.getDocument({ data: new Uint8Array(source.bytes.slice(0)) });
-                documents.set(page.sourceId, await task.promise);
+            try {
+                if (!documents.has(page.sourceId)) {
+                    const source = pdfSources.get(page.sourceId);
+                    const task = pdfjs.getDocument({ data: new Uint8Array(source.bytes.slice(0)) });
+                    documents.set(page.sourceId, await task.promise);
+                }
+                const documentPdf = documents.get(page.sourceId);
+                page.previewUrl = await renderPdfPagePreview(documentPdf, page.pageIndex);
+                renderedCount += 1;
+            } catch (error) {
+                console.warn("PDF preview failed", error);
             }
-            const documentPdf = documents.get(page.sourceId);
-            page.previewUrl = await renderPdfPagePreview(documentPdf, page.pageIndex);
         }
         renderPdfPages();
-    } catch {
-        showToast("Les aperçus PDF n’ont pas pu être générés");
+        if (!renderedCount) showToast("Les aperçus PDF n’ont pas pu être générés");
+    } catch (error) {
+        console.warn("PDF preview module failed", error);
+        showToast("Les aperçus PDF n’ont pas pu être chargés");
     }
 };
 
