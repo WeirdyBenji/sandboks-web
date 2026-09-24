@@ -494,6 +494,12 @@ h1 {
 .icon-export-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .icon-export-options .field { min-width: 0; }
 .icon-export-options select { width: 100%; }
+.icon-export-options select:disabled {
+    opacity: 0.45;
+    color: var(--muted);
+    background: #e4e1d8;
+    cursor: not-allowed;
+}
 .icon-export-submit { display: flex; justify-content: flex-end; }
 .pdf-layout { margin-top: 34px; }
 
@@ -1815,12 +1821,13 @@ const updateFaviconDownloadLabel = () => {
     const format = faviconExportFormat.value;
     const size = faviconExportSize.value;
     downloadFavicon.textContent = format === "ico"
-        ? `Télécharger favicon.ico ${size} × ${size}`
+        ? "Télécharger favicon.ico"
         : `Télécharger ${size} × ${size} ${format === "jpeg" ? "JPG" : format.toUpperCase()}`;
+    faviconExportSize.disabled = format === "ico";
 };
 
-const downloadIco = async (selectedSize) => {
-    const sizes = [selectedSize];
+const downloadIco = async () => {
+    const sizes = [16, 32, 48];
     const images = await Promise.all(sizes.map(async (size) => {
         const canvas = drawSquareIcon(size);
         const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
@@ -1836,8 +1843,8 @@ const downloadIco = async (selectedSize) => {
     let imageOffset = directoryLength;
     images.forEach((image, index) => {
         const entryOffset = 6 + index * 16;
-        icoBytes[entryOffset] = sizes[index] >= 256 ? 0 : sizes[index];
-        icoBytes[entryOffset + 1] = sizes[index] >= 256 ? 0 : sizes[index];
+        icoBytes[entryOffset] = sizes[index];
+        icoBytes[entryOffset + 1] = sizes[index];
         header.setUint16(entryOffset + 4, 1, true);
         header.setUint16(entryOffset + 6, 32, true);
         header.setUint32(entryOffset + 8, image.length, true);
@@ -1864,9 +1871,9 @@ downloadFavicon.addEventListener("click", async () => {
     if (!faviconImage) return;
     const format = faviconExportFormat.value;
     const size = Number(faviconExportSize.value);
-    const blob = format === "ico" ? await downloadIco(size) : await downloadRasterIcon(format, size);
+    const blob = format === "ico" ? await downloadIco() : await downloadRasterIcon(format, size);
     const extension = format === "jpeg" ? "jpg" : format;
-    const fileName = format === "ico" ? `favicon-${size}x${size}.ico` : `favicon-${size}x${size}.${extension}`;
+    const fileName = format === "ico" ? "favicon.ico" : `favicon-${size}x${size}.${extension}`;
 
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
