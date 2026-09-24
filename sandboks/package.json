@@ -8,6 +8,7 @@
   "dependencies": {
     "jsbarcode": "3.11.6",
     "pdf-lib": "1.17.1",
+    "pdfjs-dist": "^4.10.38",
     "qrcode-generator": "1.4.4"
   }
 }

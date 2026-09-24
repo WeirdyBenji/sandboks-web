@@ -28,6 +28,7 @@ readdirSync(uploadsDir, { withFileTypes: true })
 const contentTypes = {
     ".html": "text/html; charset=utf-8",
     ".js": "text/javascript; charset=utf-8",
+    ".mjs": "text/javascript; charset=utf-8",
     ".css": "text/css; charset=utf-8",
     ".ico": "image/x-icon",
     ".json": "application/json; charset=utf-8",
@@ -39,6 +40,8 @@ const vendorFiles = new Map([
     ["/vendor/qrcode-generator.js", join(rootDir, "node_modules", "qrcode-generator", "qrcode.js")],
     ["/vendor/JsBarcode.all.min.js", join(rootDir, "node_modules", "jsbarcode", "dist", "JsBarcode.all.min.js")],
     ["/vendor/pdf-lib.min.js", join(rootDir, "node_modules", "pdf-lib", "dist", "pdf-lib.min.js")],
+    ["/vendor/pdf.min.mjs", join(rootDir, "node_modules", "pdfjs-dist", "legacy", "build", "pdf.min.mjs")],
+    ["/vendor/pdf.worker.min.mjs", join(rootDir, "node_modules", "pdfjs-dist", "legacy", "build", "pdf.worker.min.mjs")],
 ]);
 
 const commonSecurityHeaders = {
@@ -50,7 +53,7 @@ const commonSecurityHeaders = {
 const pageSecurityHeaders = {
     ...commonSecurityHeaders,
     "Cache-Control": "no-store",
-    "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
+    "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline'; worker-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
 };
 
 const sendJson = (response, statusCode, payload) => {

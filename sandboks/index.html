@@ -546,6 +546,20 @@ h1 {
     color: #7a7d80;
     background: white;
     box-shadow: 0 7px 15px rgba(40, 44, 48, 0.08);
+    overflow: hidden;
+}
+
+.page-sheet.has-preview {
+    padding: 0;
+    display: block;
+}
+
+.page-preview {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+    background: white;
 }
 
 .page-lines { display: grid; gap: 7px; }
@@ -1889,15 +1903,19 @@ const pdfSummary = document.getElementById("pdfSummary");
 const clearPdf = document.getElementById("clearPdf");
 const exportPdf = document.getElementById("exportPdf");
 const pdfSources = new Map();
+const PDF_PREVIEW_PAGE_LIMIT = 40;
 let pageItems = [];
 let pdfId = 0;
 let draggedPageId = null;
+let pdfJsModule = null;
+let previewsDisabledForPageCount = false;
 
 const renderPdfPages = () => {
     pdfPages.replaceChildren();
     const sourceCount = new Set(pageItems.map((page) => page.sourceId)).size;
+    const previewMode = pageItems.length && previewsDisabledForPageCount ? " · aperçus désactivés" : "";
     pdfSummary.textContent = pageItems.length
-        ? `${pageItems.length} page${pageItems.length > 1 ? "s" : ""} · ${sourceCount} document${sourceCount > 1 ? "s" : ""}`
+        ? `${pageItems.length} page${pageItems.length > 1 ? "s" : ""} · ${sourceCount} document${sourceCount > 1 ? "s" : ""}${previewMode}`
         : "Aucun PDF ajouté";
     clearPdf.disabled = pageItems.length === 0;
     exportPdf.disabled = pageItems.length === 0;
@@ -1919,12 +1937,20 @@ const renderPdfPages = () => {
         card.dataset.pageId = page.id;
 
         const sheet = document.createElement("div");
-        sheet.className = "page-sheet";
-        sheet.innerHTML = '<div class="page-lines"><i></i><i></i><i></i><i></i></div>';
-        const number = document.createElement("span");
-        number.className = "page-number";
-        number.textContent = page.pageIndex + 1;
-        sheet.append(number);
+        sheet.className = page.previewUrl ? "page-sheet has-preview" : "page-sheet";
+        if (page.previewUrl) {
+            const preview = document.createElement("img");
+            preview.className = "page-preview";
+            preview.src = page.previewUrl;
+            preview.alt = `Aperçu de la page ${page.pageIndex + 1}`;
+            sheet.append(preview);
+        } else {
+            sheet.innerHTML = '<div class="page-lines"><i></i><i></i><i></i><i></i></div>';
+            const number = document.createElement("span");
+            number.className = "page-number";
+            number.textContent = page.pageIndex + 1;
+            sheet.append(number);
+        }
 
         const name = document.createElement("div");
         name.className = "page-name";
@@ -1955,6 +1981,7 @@ const renderPdfPages = () => {
         remove.addEventListener("click", () => {
             pageItems.splice(index, 1);
             renderPdfPages();
+            void renderMissingPdfPreviews();
         });
         controls.append(previous, next, remove);
         card.append(sheet, name, order, controls);
@@ -1985,6 +2012,53 @@ const movePdfPage = (fromIndex, toIndex) => {
     renderPdfPages();
 };
 
+const loadPdfJs = async () => {
+    if (pdfJsModule) return pdfJsModule;
+    pdfJsModule = await import("/vendor/pdf.min.mjs");
+    pdfJsModule.GlobalWorkerOptions.workerSrc = "/vendor/pdf.worker.min.mjs";
+    return pdfJsModule;
+};
+
+const renderPdfPagePreview = async (pdfDocument, pageIndex) => {
+    const page = await pdfDocument.getPage(pageIndex + 1);
+    const viewport = page.getViewport({ scale: 0.35 });
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.ceil(viewport.width);
+    canvas.height = Math.ceil(viewport.height);
+    await page.render({ canvasContext: canvas.getContext("2d"), viewport }).promise;
+    return canvas.toDataURL("image/jpeg", 0.72);
+};
+
+const renderMissingPdfPreviews = async () => {
+    previewsDisabledForPageCount = pageItems.length > PDF_PREVIEW_PAGE_LIMIT;
+    if (previewsDisabledForPageCount) {
+        pageItems.forEach((page) => { delete page.previewUrl; });
+        showToast(`Aperçus désactivés au-delà de ${PDF_PREVIEW_PAGE_LIMIT} pages`);
+        renderPdfPages();
+        return;
+    }
+
+    const missingPages = pageItems.filter((page) => !page.previewUrl);
+    if (!missingPages.length) return;
+
+    try {
+        const pdfjs = await loadPdfJs();
+        const documents = new Map();
+        for (const page of missingPages) {
+            if (!documents.has(page.sourceId)) {
+                const source = pdfSources.get(page.sourceId);
+                const task = pdfjs.getDocument({ data: new Uint8Array(source.bytes.slice(0)) });
+                documents.set(page.sourceId, await task.promise);
+            }
+            const documentPdf = documents.get(page.sourceId);
+            page.previewUrl = await renderPdfPagePreview(documentPdf, page.pageIndex);
+        }
+        renderPdfPages();
+    } catch {
+        showToast("Les aperçus PDF n’ont pas pu être générés");
+    }
+};
+
 const addPdfFiles = async (files) => {
     if (!window.PDFLib) {
         showToast("Le module PDF n’a pas pu être chargé");
@@ -2005,6 +2079,7 @@ const addPdfFiles = async (files) => {
         }
     }
     renderPdfPages();
+    await renderMissingPdfPreviews();
 };
 
 pdfInput.addEventListener("change", async () => {
@@ -2025,6 +2100,7 @@ pdfPages.addEventListener("drop", (event) => {
 clearPdf.addEventListener("click", () => {
     pageItems = [];
     pdfSources.clear();
+    previewsDisabledForPageCount = false;
     renderPdfPages();
 });
 
