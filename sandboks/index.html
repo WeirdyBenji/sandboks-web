@@ -490,7 +490,11 @@ h1 {
 .preview-card .ios { width: 120px; height: 120px; border-radius: 22.37%; }
 .preview-card strong { display: block; margin-top: 10px; font-size: 0.78rem; }
 .preview-card span { color: var(--muted); font-size: 0.7rem; }
-.preview-actions { padding: 0 24px; display: flex; justify-content: flex-end; }
+.preview-actions { padding: 0 24px; display: grid; gap: 12px; }
+.icon-export-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.icon-export-options .field { min-width: 0; }
+.icon-export-options select { width: 100%; }
+.icon-export-submit { display: flex; justify-content: flex-end; }
 .pdf-layout { margin-top: 34px; }
 
 .pdf-toolbar {
@@ -1029,7 +1033,6 @@ h1 {
                 <section class="panel preview-panel">
                     <div class="panel-heading">
                         <h2>Aperçus</h2>
-                        <span class="panel-count">En situation</span>
                     </div>
                     <div class="preview-stage">
                         <div class="browser-preview">
@@ -1063,7 +1066,34 @@ h1 {
                         </div>
                     </div>
                     <div class="preview-actions">
-                        <button class="button blue" id="downloadFavicon" type="button" disabled>Télécharger favicon.ico</button>
+                        <div class="icon-export-options">
+                            <label class="field">
+                                Format
+                                <select id="faviconExportFormat">
+                                    <option value="ico" selected>favicon.ico</option>
+                                    <option value="png">PNG</option>
+                                    <option value="jpeg">JPG</option>
+                                    <option value="webp">WebP</option>
+                                </select>
+                            </label>
+                            <label class="field">
+                                Taille
+                                <select id="faviconExportSize">
+                                    <option value="16">16 × 16 px</option>
+                                    <option value="32">32 × 32 px</option>
+                                    <option value="48">48 × 48 px</option>
+                                    <option value="64">64 × 64 px</option>
+                                    <option value="96">96 × 96 px</option>
+                                    <option value="120">120 × 120 px</option>
+                                    <option value="180">180 × 180 px</option>
+                                    <option value="192">192 × 192 px</option>
+                                    <option value="512">512 × 512 px</option>
+                                </select>
+                            </label>
+                        </div>
+                        <div class="icon-export-submit">
+                            <button class="button blue" id="downloadFavicon" type="button" disabled>Télécharger favicon.ico</button>
+                        </div>
                     </div>
                 </section>
             </div>
@@ -1680,6 +1710,8 @@ const faviconInput = document.getElementById("faviconInput");
 const faviconDropzone = document.getElementById("faviconDropzone");
 const imageInfo = document.getElementById("imageInfo");
 const downloadFavicon = document.getElementById("downloadFavicon");
+const faviconExportFormat = document.getElementById("faviconExportFormat");
+const faviconExportSize = document.getElementById("faviconExportSize");
 let faviconImage = null;
 let faviconUrl = "";
 let faviconDimensions = { width: 0, height: 0 };
@@ -1778,8 +1810,16 @@ const drawSquareIcon = (size) => {
     return canvas;
 };
 
-downloadFavicon.addEventListener("click", async () => {
-    if (!faviconImage) return;
+const updateFaviconDownloadLabel = () => {
+    const format = faviconExportFormat.value;
+    const size = faviconExportSize.value;
+    downloadFavicon.textContent = format === "ico"
+        ? "Télécharger favicon.ico"
+        : `Télécharger ${size} × ${size} ${format === "jpeg" ? "JPG" : format.toUpperCase()}`;
+    faviconExportSize.disabled = format === "ico";
+};
+
+const downloadIco = async () => {
     const sizes = [16, 32, 48];
     const images = await Promise.all(sizes.map(async (size) => {
         const canvas = drawSquareIcon(size);
@@ -1806,12 +1846,34 @@ downloadFavicon.addEventListener("click", async () => {
         imageOffset += image.length;
     });
 
+    return new Blob([icoBytes], { type: "image/x-icon" });
+};
+
+const downloadRasterIcon = async (format, size) => {
+    const canvas = drawSquareIcon(size);
+    const mimeType = `image/${format}`;
+    return new Promise((resolve) => canvas.toBlob(resolve, mimeType, 0.92));
+};
+
+[faviconExportFormat, faviconExportSize].forEach((control) => {
+    control.addEventListener("change", updateFaviconDownloadLabel);
+});
+updateFaviconDownloadLabel();
+
+downloadFavicon.addEventListener("click", async () => {
+    if (!faviconImage) return;
+    const format = faviconExportFormat.value;
+    const size = Number(faviconExportSize.value);
+    const blob = format === "ico" ? await downloadIco() : await downloadRasterIcon(format, size);
+    const extension = format === "jpeg" ? "jpg" : format;
+    const fileName = format === "ico" ? "favicon.ico" : `favicon-${size}x${size}.${extension}`;
+
     const link = document.createElement("a");
-    link.href = URL.createObjectURL(new Blob([icoBytes], { type: "image/x-icon" }));
-    link.download = "favicon.ico";
+    link.href = URL.createObjectURL(blob);
+    link.download = fileName;
     link.click();
     setTimeout(() => URL.revokeObjectURL(link.href), 1000);
-    showToast("Favicon téléchargé");
+    showToast(`${fileName} téléchargé`);
 });
 
 const pdfInput = document.getElementById("pdfInput");
